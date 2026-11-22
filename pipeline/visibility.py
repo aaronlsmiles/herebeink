@@ -177,13 +177,14 @@ def _fragments(dirs: np.ndarray, r: np.ndarray, sigma_deg: np.ndarray, deg: floa
 
 
 def footprint_depth(pose: Pose, xyz: np.ndarray, opacity: np.ndarray, sigma_m: np.ndarray, rule: str,
-                    deg: float = DEG) -> np.ndarray:
+                    deg: float = DEG, min_opacity: float | None = None) -> np.ndarray:
     """The answer-key depth panorama (metres from c; inf where nothing)."""
     if rule not in RULES:
         raise ValueError(f"rule must be one of {RULES}")
     h, w = grid(deg)
     depth = np.full(h * w, np.inf)
-    keep = opacity >= (OPAQUE_MIN if rule == "opaque" else RENDERED_MIN)
+    floor = min_opacity if min_opacity is not None else (OPAQUE_MIN if rule == "opaque" else RENDERED_MIN)
+    keep = opacity >= floor
     if not keep.any():
         return depth.reshape(h, w)
     dirs, r = rig_dirs(pose, xyz[keep])
@@ -278,6 +279,25 @@ def key_depth(pose: Pose, xyz: np.ndarray, opacity: np.ndarray, sigma_m: np.ndar
         measured = footprint_depth(pose, xyz, opacity, sigma_m, rule, deg)
     measured[through_door(pose, scale, deg)] = np.inf
     return combine(measured, point_depth(pose, key_pts, deg))
+
+
+def in_view_depth(pose: Pose, manifest: dict, rung: str, marble_world: np.ndarray, marble_opacity: np.ndarray,
+                  marble_sigma_m: np.ndarray, reference: np.ndarray, deg: float = DEG, tau: float = TAU_M) -> dict:
+    """Marble's rendered surface (its splats at 0.2 or more, the key's recipe) minus a reference depth, over the
+    cells inside the rung's view where both exist: negative means Marble is nearer the camera."""
+    dirs, _ = equirect_dirs(deg)
+    inside = in_rung(dirs.reshape(-1, 3), manifest, rung).reshape(grid(deg))
+    d, _ = rig_dirs(pose, marble_world)
+    keep = in_rung(d, manifest, rung)
+    marble = footprint_depth(pose, marble_world[keep], marble_opacity[keep], marble_sigma_m[keep], "rendered", deg,
+                             min_opacity=OPAQUE_MIN)
+    both = inside & np.isfinite(marble) & np.isfinite(reference)
+    if not both.any():
+        return {"cells": 0, "medianM": None, "withinTauShare": None}
+    diff = marble[both] - reference[both]
+    return {"cells": int(both.sum()), "medianM": round(float(np.median(diff)), 4),
+            "p25M": round(float(np.percentile(diff, 25)), 4), "p75M": round(float(np.percentile(diff, 75)), 4),
+            "withinTauShare": round(float(np.mean(np.abs(diff) <= tau)), 4)}
 
 
 def point_depth(pose: Pose, pts: np.ndarray, deg: float = DEG) -> np.ndarray:

@@ -222,3 +222,16 @@ def test_plane_key_takes_the_walls_and_the_furniture_in_front_of_them():
     to_block = (1.2 / world[:, 0]).reshape(d.shape)                   # along each ray, to the block's face at x = 1.2
     assert np.median(np.abs(d[hits_block] - to_block[hits_block])) < 0.05
     assert np.median(wall[hits_block] - d[hits_block]) > 0.5          # not the wall behind it
+
+
+def test_in_view_depth_reads_marble_against_a_reference():
+    p, op, sg = box_room()
+    pose = vis.Pose(C, RIG_FROM_WORLD)
+    ref, _, _ = truth(1.0)
+    m = manifest()
+    same = vis.in_view_depth(pose, m, "R1", p, op, sg, ref, deg=1.0)
+    assert abs(same["medianM"]) < 0.03 and same["withinTauShare"] > 0.9 and same["cells"] > 100
+    nearer = vis.in_view_depth(pose, m, "R1", C + 0.8 * (p - C), op, sg, ref, deg=1.0)
+    assert nearer["medianM"] < -0.2 and nearer["withinTauShare"] < 0.5
+    faint = vis.in_view_depth(pose, m, "R1", p, np.full(len(p), 0.1), sg, ref, deg=1.0)
+    assert faint["cells"] == 0  # Marble's splats under 0.2 do not count

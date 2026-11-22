@@ -668,6 +668,15 @@ def main(argv: list[str] | None = None) -> int:
     r.update({"worldId": args.world, "mode": "pano", "model": world.get("model"), "groundPlaneOffset": ground,
               "panoHeightM": float(scale["pano"][1]), "gateA": g, "note": NOTE, "contactSheet": str(sheet)})
     if args.rung is not None:
+        # Gate A's by-eye reading, kept in the record: depth inside the view against the key and, independently,
+        # against COLMAP's own 3+-view points (the key is weakest where R1 and R2 look; frozen Part 2 criteria)
+        v = marble["vertex"].data
+        sig = np.exp(np.stack([v["scale_0"], v["scale_1"], v["scale_2"]], 1).astype(float)).max(1) * splats.split(t1)[0]
+        mw, mo = splats.apply(t1, marble_raw), splats.opacity(marble)
+        r["inViewDepth"] = {"against": "Marble's rendered surface minus the reference, negative = nearer the camera",
+                            "key": visibility.in_view_depth(key_pose, manifest, args.rung, mw, mo, sig, key),
+                            "colmap": visibility.in_view_depth(key_pose, manifest, args.rung, mw, mo, sig,
+                                                               visibility.colmap_depth(key_pose, args.work))}
         r.update({"rung": args.rung, "fitMask": args.fit_mask,
                   # Marble's quickstart azimuths: 0 front (the door, d), 90 right, 180 back, 270 left
                   "worldAzimuthDeg": round((r["worldYawDeg"] - float(manifest["d_yaw_deg"])) % 360, 3),
@@ -695,6 +704,10 @@ def main(argv: list[str] | None = None) -> int:
               f"translation: released, the origin moves {tr['releaseM']:.3f} m from c (limit {RELEASE_MAX_M:.2f} m)")
         print(f"world yaw: raw forward at pano yaw {r['worldYawDeg']:.1f} deg, azimuth {r['worldAzimuthDeg']:.1f} deg "
               f"from the door (inputs at {r['inputAzimuthsDeg']})")
+        for ref in ("key", "colmap"):
+            d = r["inViewDepth"][ref]
+            print(f"in view, Marble against the {ref}: median {d['medianM']:+.3f} m, {d['withinTauShare']:.0%} of "
+                  f"{d['cells']} cells within 0.15 m" if d["cells"] else f"in view, against the {ref}: no shared cells")
     p = g["photometric"]
     if p["score"] is not None:
         ru = p["runnerUp"]
