@@ -121,17 +121,21 @@ def ncc(a: np.ndarray, b: np.ndarray, mask: np.ndarray) -> float:
     return float((a * b).sum() / den) if den > 1e-12 else 0.0
 
 
+def drawn(view: View, pts_world: np.ndarray, lum: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """The points drawn into view's camera at its size and blurred as its image was: (luminance, covered)."""
+    h, w = view.image.shape
+    img, cov = draw(view.cam_from_world, view.k, w, h, pts_world, lum[:, None])
+    # blur only what was drawn (normalised convolution), so holes do not darken their neighbours
+    weight = ndimage.gaussian_filter(cov.astype(float), BLUR_PX)
+    return ndimage.gaussian_filter(img[..., 0] * cov, BLUR_PX) / np.maximum(weight, 1e-9), cov
+
+
 def score(views: list[View], pts_world: np.ndarray, lum: np.ndarray) -> dict:
     """Cover-weighted mean correlation over the views the points cover enough; None when none qualifies."""
     per = {}
     num = den = 0.0
     for view in views:
-        h, w = view.image.shape
-        img, cov = draw(view.cam_from_world, view.k, w, h, pts_world, lum[:, None])
-        img = img[..., 0]
-        # blur only what was drawn (normalised convolution), so holes do not darken their neighbours
-        weight = ndimage.gaussian_filter(cov.astype(float), BLUR_PX)
-        smooth = ndimage.gaussian_filter(img * cov, BLUR_PX) / np.maximum(weight, 1e-9)
+        smooth, cov = drawn(view, pts_world, lum)
         cover = float(cov.mean())
         r = ncc(smooth, view.image, cov)
         per[view.name] = {"ncc": round(r, 4), "cover": round(cover, 3)}

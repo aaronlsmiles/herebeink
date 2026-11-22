@@ -327,6 +327,63 @@ def ladder_input_views(manifest: dict, rung: str, pose, size: int = photo.SIZE, 
     return out
 
 
+def view_order(views: list, azimuths: list, pts_world: np.ndarray, lum: np.ndarray) -> dict:
+    """KR4: which sent photo each direction of the placed world looks like. views[i] is the camera at
+    azimuths[i] holding the photo sent there; the placed world is drawn into every camera and correlated with
+    every photo, and of the 2n ways to lay n evenly spaced photos round the circle (n turns, each either way
+    round) the one with the best mean correlation is kept. A best layout that runs the other way round is the
+    reverse cyclic order of the azimuths sent; a turned one is a yaw error, not a misread."""
+    order = np.argsort(np.asarray(azimuths, float) % 360)
+    az = [float(azimuths[i]) % 360 for i in order]
+    n = len(az)
+    if n < 3 or not np.allclose(np.diff(az + [az[0] + 360]), 360 / n):
+        raise ValueError(f"view_order needs three or more evenly spaced azimuths, got {azimuths}")
+    views = [views[i] for i in order]
+    s = np.zeros((n, n))
+    covered = np.zeros(n, bool)
+    for i, v in enumerate(views):
+        img, cov = photo.drawn(v, pts_world, lum)
+        covered[i] = cov.mean() >= photo.MIN_COVER
+        for j, w in enumerate(views):
+            s[i, j] = photo.ncc(img, w.image, cov)
+    if not covered.any():
+        raise ValueError("the placed world covers none of the cameras enough to read")
+    layouts = []
+    for reflected in (False, True):
+        for k in range(n):
+            p = [(k - i) % n if reflected else (k + i) % n for i in range(n)]
+            mean = float(np.mean([s[i, p[i]] for i in range(n) if covered[i]]))
+            layouts.append((mean, reflected, k, p))
+    best = max(layouts, key=lambda x: x[0])  # max keeps the first of equals: unreflected, no turn
+    best_ref = max((x for x in layouts if x[1]), key=lambda x: x[0])
+    best_kept = max((x for x in layouts if not x[1]), key=lambda x: x[0])
+    return {"azimuthsDeg": [int(a) if a.is_integer() else a for a in az],
+            "ncc": np.round(s, 4).tolist(), "camerasRead": int(covered.sum()),
+            "best": {"reflected": best[1], "offset": best[2],
+                     "photoAt": [int(az[j]) if az[j].is_integer() else az[j] for j in best[3]]},
+            "bestMean": round(best[0], 4), "bestReflectedMean": round(best_ref[0], 4),
+            "bestUnreflectedMean": round(best_kept[0], 4), "reverseCyclicOrder": bool(best[1])}
+
+
+def kr4_reading(r: dict, views: list, manifest: dict, rung: str, marble_raw: np.ndarray, t: np.ndarray,
+                colour: np.ndarray | None, marble) -> dict:
+    """KR4 for a rung of three or more photos: the chosen start's mirror and view_order under the chosen pose,
+    drawn from Marble's opaque splats inside the rung's frustums. Only R4 can be re-run on it (frozen KR4)."""
+    files = manifest["rungs"]["R4" if rung == "R4r" else rung]
+    az_of = {v["file"]: v["azimuth"] for v in manifest["views"]}
+    if colour is None:
+        return {"reason": "no colours in the Marble file"}
+    keep = np.ones(len(marble_raw), bool)
+    if "opacity" in marble["vertex"].data.dtype.names:
+        keep &= splats.opacity(marble) >= PHOTO_MIN_OPACITY
+    pts = splats.apply(t, marble_raw[keep])
+    order = view_order(views, [az_of[f] for f in files], pts, photo.luminance(colour[keep]))
+    mirrored = bool(r["hypothesis"]["mirror"])
+    return {**order, "mirroredStart": mirrored, "misread": mirrored or order["reverseCyclicOrder"],
+            "rule": "frozen KR4: a misread only if Gate A's best start is mirrored or the views come back in the "
+                    "reverse cyclic order of the azimuths sent (hub call 98 fixes how the order is read)"}
+
+
 def gravity_deg(t: np.ndarray, flip: bool) -> float:
     """Angle between where a pose sends the raw axis its start called down and the world's down (-y)."""
     v = t[:3, :3] @ raw_down(flip)
@@ -677,6 +734,8 @@ def main(argv: list[str] | None = None) -> int:
                             "key": visibility.in_view_depth(key_pose, manifest, args.rung, mw, mo, sig, key),
                             "colmap": visibility.in_view_depth(key_pose, manifest, args.rung, mw, mo, sig,
                                                                visibility.colmap_depth(key_pose, args.work))}
+        if len(manifest["rungs"]["R4" if args.rung == "R4r" else args.rung]) >= 3:
+            r["viewOrder"] = kr4_reading(r, views, manifest, args.rung, marble_raw, t1, colour, marble)
         r.update({"rung": args.rung, "fitMask": args.fit_mask,
                   # Marble's quickstart azimuths: 0 front (the door, d), 90 right, 180 back, 270 left
                   "worldAzimuthDeg": round((r["worldYawDeg"] - float(manifest["d_yaw_deg"])) % 360, 3),
@@ -704,6 +763,11 @@ def main(argv: list[str] | None = None) -> int:
               f"translation: released, the origin moves {tr['releaseM']:.3f} m from c (limit {RELEASE_MAX_M:.2f} m)")
         print(f"world yaw: raw forward at pano yaw {r['worldYawDeg']:.1f} deg, azimuth {r['worldAzimuthDeg']:.1f} deg "
               f"from the door (inputs at {r['inputAzimuthsDeg']})")
+        vo = r.get("viewOrder")
+        if vo and "best" in vo:
+            print(f"KR4: photos read at {vo['best']['photoAt']} for cameras at {vo['azimuthsDeg']} "
+                  f"({'reversed' if vo['best']['reflected'] else 'in order'}, mean correlation {vo['bestMean']:.3f}; best "
+                  f"reversed {vo['bestReflectedMean']:.3f}); start mirrored: {vo['mirroredStart']}; misread: {vo['misread']}")
         for ref in ("key", "colmap"):
             d = r["inViewDepth"][ref]
             print(f"in view, Marble against the {ref}: median {d['medianM']:+.3f} m, {d['withinTauShare']:.0%} of "
