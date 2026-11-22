@@ -131,3 +131,48 @@ def test_fit_mask_seen_and_rung_go_together(argv, needs, capsys):
         align.main(["--world", "w", *argv])
     assert needs in capsys.readouterr().err
 
+
+
+def hazy_room(seed: int = 11) -> tuple[np.ndarray, np.ndarray]:
+    """Sparse walls with dense haze in front of them on the camera's rays, as the trained splat holds: the
+    centres a fit would aim at, and the walls alone (what the answer-key surface finds)."""
+    rng = np.random.default_rng(seed)
+    walls = box(300, 1)
+    d, _ = visibility.rig_dirs(POSE, walls)
+    rep = np.repeat(np.arange(len(walls)), 8)
+    haze = walls[rep] - visibility.world_dirs(POSE, d[rep]) * rng.uniform(0.05, 0.9, len(rep))[:, None]
+    return np.vstack([walls, haze]), walls
+
+
+def hazy_run(fit_target):
+    measured, walls = hazy_room()
+    raw, _ = marble_raw(CORNER_VIEW_YAW)
+    m = manifest(CORNER_VIEW_YAW)
+    mask = align.rung_mask(POSE, m, "R1")
+    target = None if fit_target is None else fit_target(walls, m)
+    return align.search(measured, raw, np.eye(4), C, RIG_FROM_WORLD, MSF, mask_fn=mask, hold=C, log=lambda *_: None,
+                        fit_target=target)
+
+
+def test_haze_pulls_a_fit_aimed_at_every_measured_centre():
+    # the failure seen on R1 (hub call 95): the world shrinks and turns towards the haze, and the residual,
+    # read against the same haze, still looks small
+    r = hazy_run(None)
+    off = r["scale"]["metresPerRawUnit"] < 0.95 * MSF_TRUE or abs(r["worldYawDeg"] - MARBLE_YAW) > 5
+    assert off and r["residual"]["medianCm"] < 10
+
+
+def test_a_fit_aimed_at_the_key_surface_ignores_the_haze():
+    def key_in_view(walls, m):
+        # the key is a rendered surface, dense where the scan's walls are sparse
+        key = box(3000, 3)
+        return key[visibility.in_rung(visibility.rig_dirs(POSE, key)[0], m, "R1")]
+    r = hazy_run(key_in_view)
+    t = np.array(r["world_from_marble"])
+    assert np.linalg.norm(t[:3, 3] - C) < 1e-6
+    assert r["scale"]["metresPerRawUnit"] == pytest.approx(MSF_TRUE, rel=0.01)
+    assert r["worldYawDeg"] == pytest.approx(MARBLE_YAW, abs=1.0)
+    assert r["fitTarget"] == "answer-key surface"
+    assert r["keyResidual"]["medianCm"] < 2.0
+    # the frozen residual is still read against every measured centre, haze included
+    assert r["residual"]["icpSet"] > 0

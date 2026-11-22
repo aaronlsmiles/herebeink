@@ -356,19 +356,23 @@ def photo_pick(pick: np.ndarray, opacity: np.ndarray | None, n: int = PHOTO_SPLA
 def search(measured_world: np.ndarray, marble_raw: np.ndarray, world_from_colmap: np.ndarray, pano_c: np.ndarray,
            r_cam: np.ndarray, msf: float, views: list | None = None, marble_lum: np.ndarray | None = None,
            marble_opacity: np.ndarray | None = None, start: tuple | None = None, log=print, mask_fn=None,
-           hold: np.ndarray | None = None) -> dict:
+           hold: np.ndarray | None = None, fit_target: np.ndarray | None = None) -> dict:
     """Score every start, run ICP from the promising ones, choose, and compute the frozen residual once.
 
     mask_fn(t, raw) -> bool per raw point: only the points it keeps under pose t are scored, fitted and read
     in the residual (a rung's frustums; default every point). hold, a world point: every pose sends Marble's
     origin there and only rotation and scale are fitted; the result then carries the release check and the
-    world's yaw."""
+    world's yaw. fit_target, world points: what the starts are scored against and the fit aims at (for a flat
+    rung, the answer-key surface inside its view, because the trained splat's haze pulls a one-view world
+    towards the camera; hub call 95); the frozen residual is still read against every measured centre."""
     t_start = time.time()
     tree = cKDTree(measured_world)
-    target = cloud(measured_world, normals=True)
+    aim = measured_world if fit_target is None else np.asarray(fit_target, float)
+    aim_tree = tree if fit_target is None else cKDTree(aim)
+    target = cloud(aim, normals=True)
     pick = sample(len(marble_raw), SAMPLE_SPLATS)
     raw_s = marble_raw[pick]
-    meas_s = measured_world[sample(len(measured_world), SAMPLE_SPLATS, seed=1)]
+    meas_s = aim[sample(len(aim), SAMPLE_SPLATS, seed=1)]
     photo_ok = bool(views) and marble_lum is not None
     if photo_ok:
         keep = photo_pick(pick, marble_opacity)
@@ -393,7 +397,7 @@ def search(measured_world: np.ndarray, marble_raw: np.ndarray, world_from_colmap
         if hold is not None:
             t0[:3, 3] = hold
         table.append({"yawDeg": h[0], "mirror": h[1], "flip": h[2], "rawDown": "-y" if h[2] else "+y",
-                      "before": residual(t0, fit(t0, raw_s), tree)["medianCm"], "photoBefore": photometric(t0), "t0": t0})
+                      "before": residual(t0, fit(t0, raw_s), aim_tree)["medianCm"], "photoBefore": photometric(t0), "t0": t0})
     far = lambda v: np.inf if v is None else v  # noqa: E731
     key = lambda e: (e["yawDeg"], e["mirror"], e["flip"])  # noqa: E731
     if start is not None:
@@ -405,12 +409,12 @@ def search(measured_world: np.ndarray, marble_raw: np.ndarray, world_from_colmap
     tried = [e for e in table if key(e) in wanted]
     for e in tried:
         if hold is None:
-            e["t"] = icp(e["t0"], raw_s, tree, target, scale_round=True, mask_fn=mask_fn)
+            e["t"] = icp(e["t0"], raw_s, aim_tree, target, scale_round=True, mask_fn=mask_fn)
         else:
-            e["t"] = icp_held(e["t0"], raw_s, tree, target, hold, mask_fn)
+            e["t"] = icp_held(e["t0"], raw_s, aim_tree, target, hold, mask_fn)
         fitted = fit(e["t"], raw_s)
-        e["after"] = residual(e["t"], fitted, tree)["medianCm"]
-        tw = two_way(e["t"], fitted, tree, meas_fit) if len(fitted) and len(meas_fit) else float("inf")
+        e["after"] = residual(e["t"], fitted, aim_tree)["medianCm"]
+        tw = two_way(e["t"], fitted, aim_tree, meas_fit) if len(fitted) and len(meas_fit) else float("inf")
         e["twoWayCm"] = round(tw * 100, 3) if np.isfinite(tw) else None
         e["gravityDeg"] = round(gravity_deg(e["t"], e["flip"]), 2)
         e["photo"] = photometric(e["t"])
@@ -464,8 +468,11 @@ def search(measured_world: np.ndarray, marble_raw: np.ndarray, world_from_colmap
     }
     if in_fit is not None:
         out["fitSetSplats"] = int(in_fit.sum())
+    if fit_target is not None:
+        out["fitTarget"] = "answer-key surface"
+        out["keyResidual"] = residual(t, marble_raw if in_fit is None else marble_raw[in_fit], aim_tree)
     if hold is not None:
-        out.update(release(t, raw_s, tree, target, mask_fn))
+        out.update(release(t, raw_s, aim_tree, target, mask_fn))
         out["worldYawDeg"] = world_yaw_deg(t, world_from_colmap, r_cam)
         out["seconds"] = round(time.time() - t_start, 1)
     return out
@@ -536,10 +543,12 @@ def gate(r: dict, accept_by_eye: str | None = None) -> dict:
 
 
 def contact_sheet(measured_world: np.ndarray, marble_raw: np.ndarray, t0: np.ndarray, t: np.ndarray, out: Path,
-                  door_centre=None, pano=None) -> Path:
+                  door_centre=None, pano=None, marble_raw_before: np.ndarray | None = None,
+                  title: str = "measured grey, Marble orange") -> Path:
     m = plots.thin(measured_world, 60000)
     raw = plots.thin(marble_raw, 60000, seed=1)
-    before, after = splats.apply(t0, raw), splats.apply(t, raw)
+    raw0 = raw if marble_raw_before is None else plots.thin(marble_raw_before, 60000, seed=1)
+    before, after = splats.apply(t0, raw0), splats.apply(t, raw)
     lo, hi = np.percentile(m, 1, axis=0) - 1.0, np.percentile(m, 99, axis=0) + 1.0
     img = Image.new("RGB", (1280, 1030), "white")
     draw = ImageDraw.Draw(img)
@@ -564,7 +573,7 @@ def contact_sheet(measured_world: np.ndarray, marble_raw: np.ndarray, t0: np.nda
             panel.points(draw, cloud_k[:, [0, 1]], (214, 110, 30))
             panel.points(draw, m[:, [0, 1]], (60, 60, 60))
         panel.axes(draw, font)
-    draw.text((8, 1006), "measured grey, Marble orange", fill=(0, 0, 0), font=font)
+    draw.text((8, 1006), title, fill=(0, 0, 0), font=font)
     out.parent.mkdir(parents=True, exist_ok=True)
     img.save(out)
     return out
@@ -620,7 +629,7 @@ def main(argv: list[str] | None = None) -> int:
     marble = splats.read(args.work / "marble" / f"marble_{args.world}.ply")
     marble_raw = splats.centres(marble)
     colour = splats.base_colour(marble)
-    mask_fn = hold = manifest = None
+    mask_fn = hold = manifest = key_in_view = None
     if args.rung is None:
         views = photo.pano_views(model, args.work / "images", w_from_c)
         print(f"photometric check: {len(views)} pano view(s) on disk in {args.work / 'images'}")
@@ -636,15 +645,25 @@ def main(argv: list[str] | None = None) -> int:
         pose = visibility.pose_from_work(args.work)
         views = ladder_input_views(manifest, args.rung, pose, root=root)
         mask_fn, hold = rung_mask(pose, manifest, args.rung), pose.c_world
+        key_pose, key = visibility.answer_key_depth(args.work)
+        key_pts, _ = visibility.surface_points(key_pose, key)
+        key_in_view = key_pts[visibility.in_rung(visibility.rig_dirs(pose, key_pts)[0], manifest, args.rung)]
         print(f"photometric check: {len(views)} input view(s) of {args.rung}; fit set: Marble splats inside its frustums; "
-              f"origin held at c {np.round(hold, 3).tolist()}")
+              f"origin held at c {np.round(hold, 3).tolist()}; the fit aims at the answer-key surface in view "
+              f"({len(key_in_view)} points), the residual at every measured centre")
     r = search(measured, marble_raw, w_from_c, pano_c, r_cam, msf, views,
                None if colour is None else photo.luminance(colour),
                splats.opacity(marble) if "opacity" in marble["vertex"].data.dtype.names else None,
-               parse_start(args.start) if args.start else None, mask_fn=mask_fn, hold=hold)
+               parse_start(args.start) if args.start else None, mask_fn=mask_fn, hold=hold, fit_target=key_in_view)
     out = args.work / "align" / args.world
-    sheet = contact_sheet(measured, marble_raw, np.array(r["initial"]), np.array(r["world_from_marble"]), out / "contact.png",
-                          scale["door"]["centre"], scale["pano"])
+    t0, t1 = np.array(r["initial"]), np.array(r["world_from_marble"])
+    if args.rung is None:
+        sheet = contact_sheet(measured, marble_raw, t0, t1, out / "contact.png", scale["door"]["centre"], scale["pano"])
+    else:
+        # only what the rung saw: the key surface in view, and Marble's splats inside the frustums under each pose
+        sheet = contact_sheet(key_in_view, marble_raw[mask_fn(t1, marble_raw)], t0, t1, out / "contact.png",
+                              scale["door"]["centre"], scale["pano"], marble_raw_before=marble_raw[mask_fn(t0, marble_raw)],
+                              title="inside the rung's view only: answer-key surface grey, Marble orange")
     g = gate(r, args.accept_by_eye)
     r.update({"worldId": args.world, "mode": "pano", "model": world.get("model"), "groundPlaneOffset": ground,
               "panoHeightM": float(scale["pano"][1]), "gateA": g, "note": NOTE, "contactSheet": str(sheet)})

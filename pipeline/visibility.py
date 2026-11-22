@@ -383,6 +383,19 @@ def key_points(work: Path) -> tuple[np.ndarray, np.ndarray]:
     return a["xyz"][a["past"]], a["cams"][a["cam_dist"] > 0]
 
 
+def answer_key_depth(work: Path, rule: str = "rendered", deg: float = DEG) -> tuple[Pose, np.ndarray]:
+    """The frozen answer key (STATUS, Part 2 criteria) as a depth panorama from c."""
+    scale = json.loads((work / "scale.json").read_text())
+    pose = pose_from_work(work)
+    ply = splats.read(work / "splat" / "measured.ply", quiet=True)
+    v = ply["vertex"].data
+    w_from_c = np.array(scale["world_from_colmap"], float)
+    xyz = splats.apply(w_from_c, splats.centres(ply))
+    sigma = np.exp(np.stack([v["scale_0"], v["scale_1"], v["scale_2"]], 1).astype(float)).max(1) * splats.split(w_from_c)[0]
+    kp, _ = key_points(work)
+    return pose, key_depth(pose, xyz, splats.opacity(ply), sigma, kp, scale, rule, deg)
+
+
 def map_png(path: Path, pose: Pose, manifest: dict, rung: str, pts: np.ndarray, seen: np.ndarray, door: dict,
             shares: dict) -> Path:
     font = ImageFont.load_default(size=15)
