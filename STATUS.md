@@ -71,7 +71,7 @@ Frozen at Gate 0, before any capture or generation, from the approved plan and A
 | A | Alignment median under 10 cm, or the fallback stage chosen | Aaron | Passed 21 Nov (below) |
 | D | Design pass: the ink reads as drawn (not a filter) | Aaron | Decided 22 Nov by kill rule 2: filter, after the one pen pass; the page and thesis state it (LOG.md, round 3). Aaron reviews it live |
 | V | Verify clean at 1440 and 390, both themes, console clean | subagent | Passed 22 Nov (LOG.md, "Gate V"); three edge cases left open there |
-| P | Clearance passed; push and deploy | Aaron's word | Passed 22 Nov: deployed; the repo public as one squashed commit; the domain waits on Aaron's CNAME |
+| P | Clearance passed; push and deploy | Aaron's word | Passed 22 Nov: deployed; the repo public as one squashed commit; live on its own domain the same day (Aaron's CNAME, the certificate issued) and the case study on studionephele.com (site v1.53) |
 
 ## Gate S1 (18 Nov)
 - Outlines hold 2 CSS px at device pixel ratios 1 and 2, at two distances and along an orbit (1.90 to 2.11 measured). Write-up: `docs/spike-s1.md`.
@@ -85,7 +85,8 @@ Frozen at Gate 0, before any capture or generation, from the approved plan and A
 - £ per keeper: n/a.
 
 ## Links
-- Page: https://herebeink.studionephele.com (once Aaron's Cloudflare CNAME `herebeink` → `cname.vercel-dns.com`, DNS only, is in; the domain is already on the Vercel project).
+- Page: https://herebeink.studionephele.com (live 22 Nov).
+- Case study: https://studionephele.com/work/herebeink/ (site v1.53, 22 Nov).
 - Code: https://github.com/aaronlsmiles/herebeink (MIT; one squashed public commit on the branch `public`; `main` keeps the private history, and a pre-push hook lets only `public` reach GitHub).
 - Film (v1, captions only): `herebeink/film/v1/` on the media host (MEDIA.md).
 - Thesis: THESIS.md. Plain words: the page with `?plain=1`.
@@ -117,7 +118,7 @@ Frozen at Gate 0, before any capture or generation, from the approved plan and A
 - **Tilt** cannot work over the plain-http Wi-Fi server (iOS hides the orientation API on insecure pages); the label now says so. Test tilt on the https page.
 
 ## Next
-1. Aaron: the Cloudflare CNAME, so the page answers on its own domain; then the case study on studionephele.com goes to production.
+1. Part 2, the evidence ladder: plan for Gate 0 in the hub (`prototypes/plans/p50-here-be-ink/plan-part-2-2026-11-22.md`). World Labs ends Marble and its API on 8 Jan 2027 and stops credit sales on 8 Dec 2026, so every paid generation must run before then.
 2. Aaron, after launch: the tilt check on the https page, the hallway test (three walkers, `?coast=off`, within 7 days), his proofread (`?plain=1` too) and the real-reader test, his music for the film. The Quest 2 check moved to card P77 (hub call 69); the film keeps an empty slot for its headset shot (`film/README.md`).
 3. Open from Gate V (LOG.md): with zero coastlines the copy still mentions the pen line; a failed scene fetch says "Failed to fetch"; small overlaps at 200 % text and on a phone on its side with plain words on.
 4. A later version, Aaron's call: make the ink a drawing through the architecture (edges and tone from Marble's colour, or a draughtsman's light), per Gate D.
