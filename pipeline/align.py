@@ -544,7 +544,7 @@ def gate(r: dict, accept_by_eye: str | None = None) -> dict:
 
 def contact_sheet(measured_world: np.ndarray, marble_raw: np.ndarray, t0: np.ndarray, t: np.ndarray, out: Path,
                   door_centre=None, pano=None, marble_raw_before: np.ndarray | None = None,
-                  title: str = "measured grey, Marble orange") -> Path:
+                  caption: str = "measured grey, Marble orange") -> Path:
     m = plots.thin(measured_world, 60000)
     raw = plots.thin(marble_raw, 60000, seed=1)
     raw0 = raw if marble_raw_before is None else plots.thin(marble_raw_before, 60000, seed=1)
@@ -573,7 +573,7 @@ def contact_sheet(measured_world: np.ndarray, marble_raw: np.ndarray, t0: np.nda
             panel.points(draw, cloud_k[:, [0, 1]], (214, 110, 30))
             panel.points(draw, m[:, [0, 1]], (60, 60, 60))
         panel.axes(draw, font)
-    draw.text((8, 1006), title, fill=(0, 0, 0), font=font)
+    draw.text((8, 1006), caption, fill=(0, 0, 0), font=font)
     out.parent.mkdir(parents=True, exist_ok=True)
     img.save(out)
     return out
@@ -663,7 +663,7 @@ def main(argv: list[str] | None = None) -> int:
         # only what the rung saw: the key surface in view, and Marble's splats inside the frustums under each pose
         sheet = contact_sheet(key_in_view, marble_raw[mask_fn(t1, marble_raw)], t0, t1, out / "contact.png",
                               scale["door"]["centre"], scale["pano"], marble_raw_before=marble_raw[mask_fn(t0, marble_raw)],
-                              title="inside the rung's view only: answer-key surface grey, Marble orange")
+                              caption="inside the rung's view only: answer-key surface grey, Marble orange")
     g = gate(r, args.accept_by_eye)
     r.update({"worldId": args.world, "mode": "pano", "model": world.get("model"), "groundPlaneOffset": ground,
               "panoHeightM": float(scale["pano"][1]), "gateA": g, "note": NOTE, "contactSheet": str(sheet)})
