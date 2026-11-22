@@ -555,7 +555,10 @@ def cmd_ladder(a):
     before = get_balance(key)
     if before - price < a.floor:
         raise Refusal(f"balance {before} minus worst case {price} would fall below the floor {a.floor}")
-    assets = [_upload(i["path"], key) for i in inputs]
+    try:
+        assets = [_upload(i["path"], key) for i in inputs]
+    except (KeyError, TypeError) as e:
+        raise Refusal(f"media-asset upload reply not understood ({type(e).__name__}); nothing was generated") from None
     body = {"display_name": f"herebeink ladder {a.rung}", "model": a.model, "permission": {"public": False},
             "world_prompt": ladder_prompt(a.rung, assets, inputs)}
     if a.seed is not None:

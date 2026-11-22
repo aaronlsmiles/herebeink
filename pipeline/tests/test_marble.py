@@ -854,3 +854,11 @@ def test_ladder_rows_go_to_the_licence_table(ladder):
     assert run(ladder, *ladder_args("R1")) == 0
     lic = (ladder.root / "LICENCES.md").read_text()
     assert any("| w-1 |" in ln and "marble-1.1-plus" in ln for ln in lic.splitlines())
+
+
+def test_ladder_odd_upload_reply_is_a_one_line_refusal(ladder, capsys, monkeypatch):
+    monkeypatch.setattr(marble, "parse_prepare_upload", lambda body: body["no_such_key"])
+    assert run(ladder, *ladder_args("R1")) == 2
+    err = capsys.readouterr().err
+    assert "upload" in err and len(err.strip().splitlines()) == 1
+    assert not any(p == "/marble/v1/worlds:generate" for m, p in ladder.paths())
