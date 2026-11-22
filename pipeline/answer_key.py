@@ -17,6 +17,7 @@ from PIL import Image, ImageDraw, ImageFont
 from scipy.spatial.transform import Rotation
 
 import plots
+from door_edge import door_plane
 from colmap_model import Model, read_model
 
 WORK = Path(__file__).resolve().parent / "work"
@@ -47,13 +48,6 @@ def centre_of(img) -> np.ndarray:
 def to_world(xyz: np.ndarray, world_from_colmap: np.ndarray) -> np.ndarray:
     xyz = np.atleast_2d(np.asarray(xyz, float))
     return xyz @ world_from_colmap[:3, :3].T + world_from_colmap[:3, 3]
-
-
-def door_plane(scale: dict) -> tuple[np.ndarray, np.ndarray]:
-    d = scale["door"]
-    c = np.asarray(d["centre"], float)
-    n = np.asarray(d["outward"], float)
-    return c, n / np.linalg.norm(n)
 
 
 def _reach(dist: np.ndarray) -> dict:

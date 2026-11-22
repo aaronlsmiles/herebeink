@@ -3,7 +3,7 @@
     uv run python export.py --world WORLD_ID [--out work/export/v1] [--prefix herebeink/v1/]
                             [--allow-failed-gate "REASON"]
 
-- measured.spz from measured.ply; measured-preview.spz from 40,000 of its splats drawn with probability
+- measured.spz from measured.ply, less what lies in the sealed doorway past the door plane (door_edge.py); measured-preview.spz from 40,000 of its splats drawn with probability
   in proportion to opacity (the preview is what loads first, so it spends its splats on solid surfaces);
   measured-phone.spz the same way from 300,000, which phones load in place of the full file (only when the
   room has more splats than that; a smaller room's phone file would be the full one again);
@@ -32,6 +32,7 @@ from pathlib import Path
 
 import numpy as np
 
+import door_edge
 import schema_check
 import spz
 import splats
@@ -193,8 +194,11 @@ def export(work: Path, world_id: str, out: Path, prefix: str, media_md: Path | N
     if staging.exists():
         shutil.rmtree(staging)
     staging.mkdir()
-    n_preview = preview(work / "splat" / "measured.ply", staging / "measured-preview.ply")
-    sources = {"measured": work / "splat" / "measured.ply", "measured-preview": staging / "measured-preview.ply",
+    measured_ply = splats.read(work / "splat" / "measured.ply", quiet=True)
+    trimmed = door_edge.sealed(splats.apply(w_from_c, splats.centres(measured_ply)), scale)
+    splats.write_subset(measured_ply, ~trimmed, staging / "measured.ply")
+    n_preview = preview(staging / "measured.ply", staging / "measured-preview.ply")
+    sources = {"measured": staging / "measured.ply", "measured-preview": staging / "measured-preview.ply",
                "overlap": prov / "overlap.ply", "imagined": prov / "imagined.ply"}
     n_phone = None
     if splats.count(sources["measured"]) > phone_splats:

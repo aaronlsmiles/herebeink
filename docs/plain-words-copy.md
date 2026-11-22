@@ -11,7 +11,7 @@ Each piece says where it goes. Set the words exactly as written; the checks (fac
 - **Don't give the line away early.** Chapter 1 tells the reader to look for the edge, not where it is. Chapter titles are neutral for the same reason, since the story map shows them all.
 - **Chapters follow the walk.** Each band opens on its own at its moment (below). "Next" opens the next band's words without moving the camera. Each moment fires once; after that, the reader moves with "Next" or the story map.
 - **Labels in quotes** are the page's visible labels as of 22 November ("Walk in", "Map", "About", "Imagined half: ink", "Imagined half: filter", "Look by tilting the phone", "Enter VR", and the map legend's "Photograph", "Half and half", "Drawing", "Pen line" and "You"). If a label changes, change its quote here to match.
-- **Numbers.** The layer uses no digits except the chapter count ("1 of 5"). Every number is in words and has a match in `THESIS.md`: three passes; one photo; more than a million (1.5 million splats trained); about a metre (1.1 m of hallway); about three in every hundred (2.9 %).
+- **Numbers.** The layer uses no digits except the chapter count ("1 of 5"). Every number is in words and has a match in `THESIS.md`: three passes; one photo; more than a million (1.5 million splats trained); about a metre (1.1 m of hallway); about four in every hundred (3.8 %, since the door seal of 22 Nov; 2.9 % before).
 
 ## The invite
 

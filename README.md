@@ -18,7 +18,7 @@ Generated worlds will carry their provenance in how they are drawn, not in a cap
 
 ## Status
 
-Part 1 of 2 shipped 22 Nov 2026. Part 1 builds the walk-in world from one Marble world and ships it. Part 2 adds an evidence ladder: how the border moves as the model is shown more of the room. Part 2 is not started; it gets its own plan and gate.
+Part 1 of 2 shipped 22 Nov 2026. Part 1 builds the walk-in world from one Marble world and ships it. Part 2 adds an evidence ladder: how the border moves as the model is shown more of the room. Part 2 passed its gate on 22 Nov 2026 and is under way; generation ends by 5 Dec, before World Labs ends Marble on 8 Jan 2027.
 
 The success criteria and kill rules were frozen before any capture or generation; they are in [STATUS.md](STATUS.md). Findings, round by round, are in [LOG.md](LOG.md).
 

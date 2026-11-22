@@ -23,3 +23,10 @@ Every published media object (splats, previews, film), immutable once listed, wi
 | herebeink/film/v1/herebeink.vtt | b0661779eab3fc7badcb5d17ad7cc34302e84734dd5a9e3384f7970a8ba193b2 | 1434 | 2026-11-22 |
 | herebeink/film/v1/herebeink.srt | ccec4ba92b8b16ab71538dcb6b08815bef2b60fa365ad30f135b370d3afb6cff | 1426 | 2026-11-22 |
 | herebeink/film/v1/herebeink-poster.jpg | 9b7da423f7ce812a7e535a468236b16cd30f0970d256203cfd3e665b1863a894 | 127651 | 2026-11-22 |
+| herebeink/v3/coastline.json | c022bd9abe5d56b22d29702adf41406afee91e3b1eb5f966ad0924fb3a17c616 | 1628 | 2026-11-22 |
+| herebeink/v3/imagined.spz | 634219defbf3f6e3decdc6be50856acea4f5f33776afbbd6ec77f1925f3f240c | 1155103 | 2026-11-22 |
+| herebeink/v3/measured-phone.spz | 74cce873942d43baea5b09fae4152609abdebbbe5b20cec365cd238a56e59c65 | 8038160 | 2026-11-22 |
+| herebeink/v3/measured-preview.spz | 3f5c86d9c4d428eb802423408eaf90d3a44c0e667ef907d0c816fba82485737d | 1069862 | 2026-11-22 |
+| herebeink/v3/measured.spz | 2db566dd47222b2621415780a28f877ebaacbe847191b43573a4029786c268f2 | 29330488 | 2026-11-22 |
+| herebeink/v3/overlap.spz | 840a52763bc91587ce0fb278133fd5e94807babffdec8ce23cc45d697c5f25c1 | 10342 | 2026-11-22 |
+| herebeink/v3/scene.json | 652abacbdba3fad1641175bbbbcf904c580e372c46c10e62ebc021c87c655101 | 17964 | 2026-11-22 |

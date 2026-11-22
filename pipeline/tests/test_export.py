@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 import coastline
+import door_edge
 import export
 import provenance
 import schema_check
@@ -38,7 +39,10 @@ def test_files_counts_and_hashes(exported):
         f = out / entry["url"]
         assert entry["sha256"] == export.sha256(f) and entry["bytes"] == f.stat().st_size
         assert spz.header(f)["splats"] == entry["splats"]
-    assert scene["splats"]["measured"]["splats"] == splats.count(work / "splat" / "measured.ply")
+    s = json.loads((work / "scale.json").read_text())
+    src = splats.centres(splats.read(work / "splat" / "measured.ply", quiet=True))
+    kept = int((~door_edge.sealed(splats.apply(np.array(s["world_from_colmap"]), src), s)).sum())
+    assert scene["splats"]["measured"]["splats"] == kept < len(src)
     assert scene["counts"]["measuredPreview"] == min(40000, scene["counts"]["measured"])
     assert [scene["splats"][k]["provenance"] for k in ("measured", "measuredPreview", "overlap", "imagined")] == [0, 0, 0.5, 1]
     schema_check.check(json.loads((out / "scene.json").read_text()), "scene.schema.json")
@@ -250,3 +254,14 @@ def test_scene_json_never_holds_nan(ready):
     set_align(ready, residual={"medianCm": float("nan"), "p90Cm": 1.0, "icpSet": 5})
     with pytest.raises(ValueError):
         do_export(ready)
+
+
+def test_the_measured_files_stop_at_the_sealed_doorway(exported):
+    work, scene, _ = exported
+    s = json.loads((work / "scale.json").read_text())
+    src = splats.read(work / "splat" / "measured.ply", quiet=True)
+    world = splats.apply(np.array(s["world_from_colmap"]), splats.centres(src))
+    sealed = door_edge.sealed(world, s)
+    assert scene["counts"]["measured"] == len(world) - int(sealed.sum())
+    shipped = splats.read(work / "export" / "v1-ply" / "measured.ply", quiet=True)
+    assert not door_edge.sealed(splats.apply(np.array(s["world_from_colmap"]), splats.centres(shipped)), s).any()

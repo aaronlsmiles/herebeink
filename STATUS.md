@@ -123,6 +123,9 @@ Frozen at Gate 0, before any capture or generation, from the approved plan and A
 3. Open from Gate V (LOG.md): with zero coastlines the copy still mentions the pen line; a failed scene fetch says "Failed to fetch"; small overlaps at 200 % text and on a phone on its side with plain words on.
 4. A later version, Aaron's call: make the ink a drawing through the architecture (edges and tone from Marble's colour, or a draughtsman's light), per Gate D.
 
+## The door seal (22 Nov, hub call 90)
+- The door plane is a hard edge (`pipeline/door_edge.py`): inside the opening past it, measured splats are trimmed and every Marble splat is ink; past it beside the opening, nothing is half and half. Split now covered 96.1 %, overlap 0.03 %, imagined 3.8 %; coastline 0.73 m. **Media v3** is live (v1, v2 untouched); the film shows v2. LOG.md, "the door seal".
+
 ## Clearance (22 Nov, publish-clearance)
 - **Page:** staged with `tools/deploy/stage.sh` (7 files, no fixture, sample, spike, smoke, source maps or splats); identifier scan clean on exactly what ships; the bundle names only the media host's `scene.json`. Copy read in `web/src/ui.ts`, `web/src/plainwords/words.ts` and the map key; the plain-words layer is off on the hallway link (`?coast=off`). Cleared.
 - **Media** (`herebeink/v1/`, `v2/`): hashes match `MEDIA.md` and the local export; SPZ headers carry no names or times; `scene.json` holds a private World Labs world id (generated with `public: false`), the scale checks and Aaron's first name, nothing identifying. Cleared.

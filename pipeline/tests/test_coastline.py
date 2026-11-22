@@ -3,6 +3,7 @@ import json
 import numpy as np
 
 import coastline
+import door_edge
 import provenance
 import schema_check
 import splats
@@ -192,6 +193,9 @@ def test_run_hands_the_trace_each_measured_splats_opacity(aligned, monkeypatch):
 
     monkeypatch.setattr(coastline, "trace", spy)
     coastline.run(work, "synthworld")
-    want = splats.opacity(splats.read(work / "splat" / "measured.ply", quiet=True))
+    ply = splats.read(work / "splat" / "measured.ply", quiet=True)
+    s = json.loads((work / "scale.json").read_text())
+    outside = ~door_edge.sealed(splats.apply(np.array(s["world_from_colmap"]), splats.centres(ply)), s)
+    want = splats.opacity(ply)[outside]
     assert seen["opacity"] is not None and len(seen["opacity"]) == seen["n"] == len(want)
     assert np.allclose(np.sort(seen["opacity"]), np.sort(want))

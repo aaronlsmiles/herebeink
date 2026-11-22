@@ -32,7 +32,7 @@ describe("honest numbers", () => {
     { phrase: /\bthree times\b/g, check: () => expect(thesis).toMatch(/three slow passes of the room/) },
     { phrase: /\bone photo\b/g, check: () => expect(thesis).toMatch(/from one 360 still/) },
     { phrase: /\babout a metre\b/g, check: () => expect(Math.abs(num(/about ([\d.]+) m of hallway/) - 1)).toBeLessThanOrEqual(0.15) },
-    { phrase: /\babout three in every hundred\b/g, check: () => expect(Math.round(num(/([\d.]+) % of its world/))).toBe(3) },
+    { phrase: /\babout four in every hundred\b/g, check: () => expect(Math.round(num(/([\d.]+) % of its world/))).toBe(4) },
     { phrase: /\bmore than a million\b/g, check: () => expect(num(/([\d.]+) million (?:Gaussian )?splats/)).toBeGreaterThan(1) },
   ];
   for (const s of SOURCED) {

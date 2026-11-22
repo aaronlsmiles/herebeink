@@ -34,6 +34,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 from scipy import ndimage
 
+import door_edge
 import grid2d
 import plots
 import splats
@@ -195,7 +196,9 @@ def run(work: Path, world_id: str, min_opacity: float | None = None) -> dict:
     keep = opaque(op, min_opacity)
     if min_opacity is not None:
         print(f"measured splats at opacity {min_opacity} or more: {keep.sum()} of {len(keep)}")
-    measured, measured_op = splats.apply(w_from_c, splats.centres(ply))[keep], op[keep]
+    world = splats.apply(w_from_c, splats.centres(ply))
+    keep &= ~door_edge.sealed(world, scale)
+    measured, measured_op = world[keep], op[keep]
     marble = splats.apply(w_from_m, splats.centres(splats.read(work / "marble" / f"marble_{world_id}.ply")))
     r = trace(measured, marble, np.array(scale["walk_path_xz"]), measured_opacity=measured_op)
     g = r["grid"]

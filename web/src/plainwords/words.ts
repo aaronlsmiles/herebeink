@@ -48,7 +48,7 @@ export const CHAPTERS: Chapter[] = [
     title: "The map",
     text: [
       "This is the room from above, with the ceiling taken off so you can see the floor. The mark labelled \"You\" is where you're standing.",
-      "The part marked \"Drawing\" is small. It's about three in every hundred pieces of Marble's world.",
+      "The part marked \"Drawing\" is small. It's about four in every hundred pieces of Marble's world.",
       "The surprise was how hard the edge was to find. The camera's room is mostly fog. It's made of more than a million tiny blobs of colour, and nearly all of them are almost see-through. Stack enough of them and they look like a wall.",
       "My first test counted the fog as solid wall. So it said Marble had made up almost nothing, and it found no edge at all. In the end I chose where the measuring stops: the door frame. Past it, the camera's room is only fog.",
     ],

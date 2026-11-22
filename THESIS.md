@@ -14,7 +14,7 @@ In the browser, Spark draws the measured splats as captured and the imagined one
 
 ## Why it matters
 
-Generated worlds now extend real captures without a seam. From one still, Marble rebuilt my room closely enough that its walls, floor and ceiling coincide with mine on the alignment contact sheet. Past the door it added about 1.1 m of hallway, 2.9 % of its world, made of the same stuff as the room. Seen through the plain filter, that hallway has a door, a picture on the wall and a skirting board. Nothing in how it looks tells a visitor which part anyone saw.
+Generated worlds now extend real captures without a seam. From one still, Marble rebuilt my room closely enough that its walls, floor and ceiling coincide with mine on the alignment contact sheet. Past the door it added about 1.1 m of hallway, 3.8 % of its world, made of the same stuff as the room. Seen through the plain filter, that hallway has a door, a picture on the wall and a skirting board. Nothing in how it looks tells a visitor which part anyone saw.
 
 A caption saying so would not survive a screenshot. A rendering style does: crop any frame of this page and the drawn part still says imagined.
 
@@ -30,7 +30,7 @@ Second, "measured" has to be recorded when the capture is made; it cannot be rea
 
 Third, on a phone the cost follows the splats drawn, not the splats loaded. On an iPhone 15 Pro the full room missed the 33 ms bar; capped at 200,000 splats drawn, the start view runs at 25 ms. Close views cost more, and the phone criterion, fixed before the capture, is read at the start view.
 
-Part 2, planned, asks what moves the line: Marble shown 2, 4 and 8 of the room's own views, one model against itself on one room.
+Part 2, under way, asks what moves the line: Marble shown one photo of the room, then two, four and eight, each set cut from the same 360 still and holding the one before, and last the 360 still itself; one model against itself on one room, before World Labs ends Marble on 8 January 2027.
 
 ## Numbers
 
@@ -38,7 +38,7 @@ Part 2, planned, asks what moves the line: Marble shown 2, 4 and 8 of the room's
 - Training: 737 images, 30,000 iterations, 1.5 M splats, 31 minutes (LOG, round 2).
 - Scale: door frame taped at 1.96 m high, 1.977 m in the model (+0.86 %) (LOG, round 2).
 - Alignment, the fit for this room only: median 2.86 cm; colour check (each candidate pose scored against the 360 still's own views) 0.925 against 0.676 for the next pose (LOG, round 2). Pass bar: under 10 cm (STATUS).
-- Split: covered 96.4 %, overlap 0.7 %, imagined 2.9 % (56,323 splats); one coastline, 0.60 m, across the doorway (LOG, round 2).
+- Split, with the doorway sealed at the door plane (media v3, 22 Nov): covered 96.1 %, overlap 0.03 % (657 splats), imagined 3.8 % (73,715); one coastline, 0.73 m, across the doorway (LOG, 22 Nov, the door seal). Before the seal, and in the film: 96.4 %, 0.7 %, 2.9 % (56,323), 0.60 m (LOG, round 2).
 - Phone, iPhone 15 Pro, pixel ratio 2: full room 42 to 56 ms; lighter file, 323,000 drawn, 51 ms; capped at 200,000 drawn, 25 ms median and 27 ms p90 at the start view, 30 ms and 36 ms near a wall at 150,000. Bar: 33 ms (LOG, round 2 and 22 Nov; STATUS).
 - The border: measured pixels carrying ink in one synthetic view, 60,767 with hatching weighted by a blurred flag, 0 when weighted by the flag under each pixel (LOG, round 0c).
 - Outlines: 2 CSS px, measured 1.90 to 2.11 (STATUS, Gate S1).
