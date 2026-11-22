@@ -66,12 +66,12 @@ Frozen at Gate 0, before any capture or generation, from the approved plan and A
 | N | Name cleared and picked | Aaron, after the sweep | Passed 18 Nov (`herebeink`) |
 | M | Marble credits bought, key stored | Aaron | Met 18 Nov |
 | S1 | Spike passed: outlines at constant width from a second Spark pass | subagent, Aaron sees the screenshot | Passed 18 Nov on one condition (below); Aaron still to see `docs/spike-s1/final.png` |
-| C | Capture done: the passes, the pano still, the door width, phone stills; privacy pass clean | Aaron | Open |
-| T | Trained and cleaned splat accepted (walls flat, door intact) | Aaron | Open |
-| A | Alignment median under 10 cm, or the fallback stage chosen | Aaron | Open |
-| D | Design pass: the ink reads as drawn (not a filter) | Aaron | Open |
+| C | Capture done: the passes, the pano still, the door width, phone stills; privacy pass clean | Aaron | Met 20 Nov (below) |
+| T | Trained and cleaned splat accepted (walls flat, door intact) | Aaron | Not called on its own; the trained splat went into Gate A |
+| A | Alignment median under 10 cm, or the fallback stage chosen | Aaron | Passed 21 Nov (below) |
+| D | Design pass: the ink reads as drawn (not a filter) | Aaron | Decided 22 Nov by kill rule 2: filter, after the one pen pass; the page and thesis state it (LOG.md, round 3). Aaron reviews it live |
 | V | Verify clean at 1440 and 390, both themes, console clean | subagent | Passed 22 Nov (LOG.md, "Gate V"); three edge cases left open there |
-| P | Clearance passed; push and deploy | Aaron's word | Open |
+| P | Clearance passed; push and deploy | Aaron's word | Passed 22 Nov: deployed; the repo public as one squashed commit; the domain waits on Aaron's CNAME |
 
 ## Gate S1 (18 Nov)
 - Outlines hold 2 CSS px at device pixel ratios 1 and 2, at two distances and along an orbit (1.90 to 2.11 measured). Write-up: `docs/spike-s1.md`.
@@ -85,7 +85,10 @@ Frozen at Gate 0, before any capture or generation, from the approved plan and A
 - £ per keeper: n/a.
 
 ## Links
-None yet.
+- Page: https://herebeink.studionephele.com (once Aaron's Cloudflare CNAME `herebeink` → `cname.vercel-dns.com`, DNS only, is in; the domain is already on the Vercel project).
+- Code: https://github.com/aaronlsmiles/herebeink (MIT; one squashed public commit on the branch `public`; `main` keeps the private history, and a pre-push hook lets only `public` reach GitHub).
+- Film (v1, captions only): `herebeink/film/v1/` on the media host (MEDIA.md).
+- Thesis: THESIS.md. Plain words: the page with `?plain=1`.
 
 ## Built before the capture (19 Nov)
 - **Pipeline:** capture check to export, run end to end on synthetic data (318 fast tests, 29 slow). Runbook: `pipeline/README.md`.
@@ -114,13 +117,14 @@ None yet.
 - **Tilt** cannot work over the plain-http Wi-Fi server (iOS hides the orientation API on insecure pages); the label now says so. Test tilt on the https page.
 
 ## Next
-1. The design pass (Gate D): the black ink blots on the door leaf and the left jamb (overlap or door?), a tone for unscanned holes, the page chrome; the ink judged drawing or filter (kill rule 2).
-2. Verify (Gate V), the film (captions only until Aaron's music), the thesis and plain-words layer, clearance, the deploy (Gate P; Aaron gave his word on 22 Nov for an overnight deploy if clearance raises nothing it cannot settle).
-3. Aaron's, after launch: the Quest 2 check (`docs/viewer/xr-check.md`; a Quest browser is classed desktop and keeps the full room), the tilt check on the https page, the hallway test, making the repo public, his music for the film, his proofread.
+1. Aaron: the Cloudflare CNAME, so the page answers on its own domain; then the case study on studionephele.com goes to production.
+2. Aaron, after launch: the tilt check on the https page, the hallway test (three walkers, `?coast=off`, within 7 days), his proofread (`?plain=1` too) and the real-reader test, his music for the film. The Quest 2 check moved to card P77 (hub call 69); the film keeps an empty slot for its headset shot (`film/README.md`).
+3. Open from Gate V (LOG.md): with zero coastlines the copy still mentions the pen line; a failed scene fetch says "Failed to fetch"; small overlaps at 200 % text and on a phone on its side with plain words on.
+4. A later version, Aaron's call: make the ink a drawing through the architecture (edges and tone from Marble's colour, or a draughtsman's light), per Gate D.
 
 ## Clearance (22 Nov, publish-clearance)
 - **Page:** staged with `tools/deploy/stage.sh` (7 files, no fixture, sample, spike, smoke, source maps or splats); identifier scan clean on exactly what ships; the bundle names only the media host's `scene.json`. Copy read in `web/src/ui.ts`, `web/src/plainwords/words.ts` and the map key; the plain-words layer is off on the hallway link (`?coast=off`). Cleared.
 - **Media** (`herebeink/v1/`, `v2/`): hashes match `MEDIA.md` and the local export; SPZ headers carry no names or times; `scene.json` holds a private World Labs world id (generated with `public: false`), the scale checks and Aaron's first name, nothing identifying. Cleared.
 - **Privacy pass on the final splat:** the film's frames at every cut and caption change, and 17 views rendered from the published measured file round the room (walls, desk, shelves, print, window, ceiling). Curtains closed at night, screens off, box labels taped, nothing legible (no documents, post, addresses or screens); no person; the third-party print is unrecognisable at the splat's resolution (left in on Aaron's call, 20 Nov). Marble's hallway has a fuse-box-like box whose label is generated pseudo-text, illegible. Nothing needs masking.
 - **Film:** no audio stream in any of the three videos (ffprobe); VTT and SRT carry the same 15 cues; claims checked against LOG and STATUS; end card credits World Labs Marble (marble-1.1-plus) in words; poster has no EXIF. Cleared.
-- **Repo history:** 105 commits, all authored with the GitHub noreply address; identifier scan clean on the full `git log -p`; no home or Windows user paths with a user name. Licence added (MIT, as the sibling repos). Held for Aaron: the eleven `docs/spike-s1/` screenshots render Spark's sample butterfly, whose licence Spark does not state (LICENCES.md).
+- **Repo history:** 105 commits, all authored with the GitHub noreply address; identifier scan clean on the full `git log -p`; no home or Windows user paths with a user name. Licence added (MIT, as the sibling repos). The eleven `docs/spike-s1/` screenshots render Spark's sample butterfly, whose licence Spark does not state (LICENCES.md), so the public repo is one squashed commit without them; `docs/spike-s1.md` there says how to remake them, and the private history keeps them.
