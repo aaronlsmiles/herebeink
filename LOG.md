@@ -153,6 +153,12 @@ The first real material: one sitting in a narrow room with a high ceiling and ba
 - **Shipped:** media v3 on the media host (v1 and v2 untouched), the page pointed at it and deployed; the live checks pass and the console is clean. The plain words now say "about four in every hundred" (3.8 %), and THESIS carries both splits. The film keeps the v2 look and was not re-cut.
 - **Left:** a faint grey smudge at the foot of the left jamb, on the frame's side of the seal.
 
+## 22 Nov — Part 2, R4: four photos
+
+- **The misread check first (hub call 98).** Frozen KR4 re-runs R4 once only if Marble read the four directions back to front. How to read that was fixed before R4 existed: Marble's placed world is drawn into each of the four cameras and compared with each of the four photos, and the best of the eight ways to lay them round the circle is kept. On Part 1's 360 world it reads the photos in the order sent; with the side photos swapped on purpose it calls them reversed.
+- **Generated:** R4, four 66° photos at 0, 90, 180 and 270° from the door, in one request. 1,600 credits; balance 13,020.
+- **Placed, on every check.** The fit lands unmirrored with Marble's front 2° from the door, 6.5° off level, at 1.165 of Marble's stated scale; its residual inside the four views is 3.3 cm, and colour tells it from its mirror with room to spare (0.751 against 0.580). The four photos read back in the order sent, so there was no misread. Inside the views Marble sits a median 1 cm from the answer key and 7 cm from COLMAP's own points (R1 sat 43 cm off COLMAP): a second view per side pins the room. The in-view sheet shows Marble's walls on the key's on the three sides the photos saw and on both door jambs; past the door Marble invents a hallway, which is scored, not gated.
+
 ## 22 Nov — Part 2, R1: one photo
 
 - **Frozen first:** Part 2's criteria went into STATUS (and the public branch) before any ladder world existed, with the answer key changed by Amendment 1: the trained splat is mostly haze, so the key is the splat's rendered surface from the camera point rather than its few solid splats; a plane-fitted key was built and compared under a rule written first, and came out level with it, so the rendered key stood.
