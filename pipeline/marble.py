@@ -19,6 +19,7 @@ from pathlib import Path
 import requests
 from PIL import Image
 
+import ladder_views
 from media import MediaError, choose_source, original_of
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -28,10 +29,19 @@ KEY_ENV = "WLT_API_KEY"
 CREDITS_PER_USD = 1250
 # The project's frozen money rule: ask Aaron before any single call over $5.
 OVER_FIVE_USD = 5.0
-# Prices for a pano prompt, which carries no input surcharge; the +80 credits World Labs adds for a
-# non-pano image would apply if the API ever read the pano as a plain image.
-WORST_CASE = {"marble-1.0-draft": 150, "marble-1.1": 1500, "marble-1.1-plus": 3000}
-MODELS = {"draft": ["marble-1.0-draft"], "world": ["marble-1.1", "marble-1.1-plus"]}
+# Worst case per (model, input kind): 1,500 base + up to 1,500 variable, plus the input event World Labs
+# charges for a non-pano image (80) or a multi-image prompt (100) (pricing page, read 22 Nov 2026).
+WORST_CASE = {("marble-1.0-draft", "pano"): 150, ("marble-1.1", "pano"): 1500, ("marble-1.1-plus", "pano"): 3000,
+              ("marble-1.1-plus", "image"): 3080, ("marble-1.1-plus", "multi-image"): 3100}
+MODELS = {"draft": ["marble-1.0-draft"], "world": ["marble-1.1", "marble-1.1-plus"], "ladder": ["marble-1.1-plus"]}
+# The masked pano still Marble got for Part 1's world 2 (its sidecar's source_sha256); every ladder view must be cut from it.
+LADDER_SOURCE_SHA = "810f41d0a6e7da8c9c8ee9d3e4269ef4eadc0ffb9e1ec1e79f87f7e08be2b2ec"
+VIEW_SIZE = (1024, 768)
+# Rung -> (input kind, reconstruct_images, the manifest rung whose views it sends).
+LADDER = {"R1": ("image", False, "R1"), "R2": ("multi-image", False, "R2"), "R4": ("multi-image", False, "R4"),
+          "R8": ("multi-image", True, "R8"), "R4r": ("multi-image", True, "R4")}
+PNG_INFO_OK = {"aspect", "dpi", "gamma", "srgb"}
+DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 PANO_SIZE = (2560, 1280)
 PANO_MAX_BYTES = 20 * 1024 * 1024
 CLEAN_LINE = "Clean for upload: yes"
@@ -334,7 +344,7 @@ def guard_generate(kind, a):
         raise Refusal("pass --max-credits N; there is no default spend limit")
     if a.model not in MODELS[kind]:
         raise Refusal(f"model {a.model} is not allowed for `{kind}` (allowed: {', '.join(MODELS[kind])})")
-    price = WORST_CASE[a.model]
+    price = WORST_CASE[(a.model, "pano")]
     if price > a.max_credits:
         raise Refusal(f"worst case {price} credits exceeds --max-credits {a.max_credits}")
     if price / CREDITS_PER_USD > OVER_FIVE_USD and not a.aaron_approved_over_5:
@@ -361,9 +371,13 @@ def cmd_generate(kind, a):
     }
     if a.seed is not None:
         body["seed"] = a.seed
-    row = {"time": _now(), "kind": kind, "model": a.model, "world_id": None, "operation_id": None,
+    return _post_and_finish(kind, a.model, body, price, before, a.purpose, a.seed, {}, key)
+
+
+def _post_and_finish(kind, model, body, price, before, purpose, seed, extra, key):
+    row = {"time": _now(), "kind": kind, "model": model, "world_id": None, "operation_id": None,
            "credits_estimate": price, "credits_actual": None, "usd": round(price / CREDITS_PER_USD, 4),
-           "balance_before": before, "balance_after": None, "purpose": a.purpose, "seed": a.seed}
+           "balance_before": before, "balance_after": None, "purpose": purpose, "seed": seed, **extra}
     # Logged before the POST: once the request leaves, the money may be spent whatever happens next.
     append_spend({**row, "status": "requesting"})
     try:
@@ -474,6 +488,83 @@ def cmd_status(a):
     return finish(a.operation_id, key)
 
 
+# ---- ladder ----
+
+def views_manifest_path():
+    return ROOT / "pipeline" / "work" / "ladder" / "views" / "manifest.json"
+
+
+def check_ladder_views(rung):
+    """The views a rung may send: named by the manifest, unchanged since, cut from the Part 1 still, looked at."""
+    try:
+        m = ladder_views.verify_manifest(views_manifest_path(), root=ROOT)
+    except FileNotFoundError:
+        raise Refusal("no ladder manifest: run ladder_views.py cut first") from None
+    except ladder_views.LadderError as e:
+        raise Refusal(f"ladder views: {e}") from None
+    side = ROOT / m.get("sidecar", "")
+    side_sha = json.loads(side.read_text()).get("source_sha256") if side.is_file() else None
+    if not (m["source_sha256"] == m.get("sidecar_source_sha256") == side_sha == LADDER_SOURCE_SHA):
+        raise Refusal("the ladder views' source is not the masked pano still Part 1 sent to Marble")
+    vc = m.get("views_clean")
+    if not (isinstance(vc, dict) and str(vc.get("answer", "")).lower() == "yes" and DATE_RE.match(str(vc.get("date", "")))):
+        raise Refusal("views_clean is not a dated yes: no ladder upload until a person has looked at contact.jpg")
+    by_file = {v["file"]: v for v in m["views"]}
+    vdir = views_manifest_path().parent.resolve()
+    out = []
+    for rel in m["rungs"][LADDER[rung][2]]:
+        p = (ROOT / rel).resolve()
+        if p.parent != vdir or p.suffix.lower() != ".png":
+            raise Refusal(f"{Path(rel).name} is not a PNG in work/ladder/views/")
+        with Image.open(p) as im:
+            if im.size != VIEW_SIZE:
+                raise Refusal(f"{p.name} is {im.size[0]} x {im.size[1]}, not {VIEW_SIZE[0]} x {VIEW_SIZE[1]}")
+            extra = set(im.info) - PNG_INFO_OK
+        if extra:
+            raise Refusal(f"{p.name} carries metadata ({', '.join(sorted(extra))}); cut it again")
+        if p.stat().st_size > PANO_MAX_BYTES:
+            raise Refusal(f"{p.name} is over the 20 MB upload limit")
+        out.append({"path": p, "azimuth": by_file[rel]["azimuth"], "sha256": by_file[rel]["sha256"]})
+    return out
+
+
+def ladder_prompt(rung, assets, inputs):
+    kind, recon, _ = LADDER[rung]
+    if kind == "image":
+        return {"type": "image", "is_pano": False, "image_prompt": assets[0]}
+    return {"type": "multi-image", "reconstruct_images": recon,
+            "multi_image_prompt": [{"azimuth": i["azimuth"], "content": a} for i, a in zip(inputs, assets)]}
+
+
+def cmd_ladder(a):
+    kind, recon, _ = LADDER[a.rung]
+    if not a.yes:
+        raise Refusal("pass --yes to confirm this paid call")
+    if a.max_credits is None:
+        raise Refusal("pass --max-credits N; there is no default spend limit")
+    if a.model not in MODELS["ladder"]:
+        raise Refusal(f"model {a.model} is not allowed for `ladder` (allowed: {', '.join(MODELS['ladder'])})")
+    price = WORST_CASE[(a.model, kind)]
+    if price > a.max_credits:
+        raise Refusal(f"worst case {price} credits exceeds --max-credits {a.max_credits}")
+    if price / CREDITS_PER_USD > OVER_FIVE_USD and not a.aaron_approved_over_5:
+        raise Refusal(f"worst case ${price / CREDITS_PER_USD:.2f} is over $5; ask Aaron, then pass --aaron-approved-over-5")
+    _need_clean()
+    key = _need_key()
+    inputs = check_ladder_views(a.rung)
+    before = get_balance(key)
+    if before - price < a.floor:
+        raise Refusal(f"balance {before} minus worst case {price} would fall below the floor {a.floor}")
+    assets = [_upload(i["path"], key) for i in inputs]
+    body = {"display_name": f"herebeink ladder {a.rung}", "model": a.model, "permission": {"public": False},
+            "world_prompt": ladder_prompt(a.rung, assets, inputs)}
+    if a.seed is not None:
+        body["seed"] = a.seed
+    extra = {"rung": a.rung, "input_kind": kind, "reconstruct_images": recon,
+             "inputs": [{"azimuth": i["azimuth"], "sha256": i["sha256"]} for i in inputs]}
+    return _post_and_finish("ladder", a.model, body, price, before, a.purpose, a.seed, extra, key)
+
+
 # ---- free commands ----
 
 def cmd_credits(a):
@@ -518,6 +609,15 @@ def build_parser():
         g.add_argument("--floor", type=int, default=0)
         g.add_argument("--aaron-approved-over-5", action="store_true")
         g.add_argument("--allow-base64", action="store_true")
+    lg = sub.add_parser("ladder")
+    lg.add_argument("--rung", required=True, choices=list(LADDER))
+    lg.add_argument("--model", required=True)
+    lg.add_argument("--purpose", required=True)
+    lg.add_argument("--seed", type=int)
+    lg.add_argument("--yes", action="store_true")
+    lg.add_argument("--max-credits", type=int)
+    lg.add_argument("--floor", type=int, default=0)
+    lg.add_argument("--aaron-approved-over-5", action="store_true")
     ex = sub.add_parser("export")
     ex.add_argument("world_id")
     ex.add_argument("--format", choices=["ply"], required=True)
@@ -535,6 +635,8 @@ def main(argv=None):
     try:
         if a.cmd in ("draft", "world"):
             return cmd_generate(a.cmd, a)
+        if a.cmd == "ladder":
+            return cmd_ladder(a)
         return {"credits": cmd_credits, "prepare-pano": cmd_prepare_pano,
                 "export": cmd_export, "status": cmd_status}[a.cmd](a)
     except Refusal as e:

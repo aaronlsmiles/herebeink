@@ -176,14 +176,14 @@ def test_refuses_when_price_exceeds_max_credits(env, capsys):
 
 
 def test_refuses_over_five_dollars_without_approval(env, capsys, monkeypatch):
-    monkeypatch.setitem(marble.WORST_CASE, "marble-1.1-plus", 7000)
+    monkeypatch.setitem(marble.WORST_CASE, ("marble-1.1-plus", "pano"), 7000)
     args = ["world", "--pano", str(env.pano), "--model", "marble-1.1-plus", "--purpose", "t",
             "--max-credits", "7000", "--yes"]
     refused(env, run(env, *args), capsys, "$5")
 
 
 def test_over_five_dollars_allowed_with_approval(env, monkeypatch):
-    monkeypatch.setitem(marble.WORST_CASE, "marble-1.1-plus", 7000)
+    monkeypatch.setitem(marble.WORST_CASE, ("marble-1.1-plus", "pano"), 7000)
     env.balances = [20000, 13000]
     args = ["world", "--pano", str(env.pano), "--model", "marble-1.1-plus", "--purpose", "t",
             "--max-credits", "7000", "--aaron-approved-over-5", "--yes"]
@@ -685,3 +685,172 @@ def test_poll_gives_up_on_a_404_that_lasts(env, capsys):
     assert run(env, *draft_args(env)) != 0
     assert "status op-1" in capsys.readouterr().err
     assert [r["status"] for r in spend_rows(env)] == ["requesting", "admitted"]
+
+
+# ---- ladder (Part 2) ----
+import ladder_views  # noqa: E402
+
+AZ = (0, 45, 90, 135, 180, 225, 270, 315)
+RUNG_AZ = {"R1": (0,), "R2": (0, 180), "R4": (0, 90, 180, 270), "R8": AZ}
+
+
+def _sha(p):
+    return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+
+
+@pytest.fixture
+def ladder(env, monkeypatch):
+    """A repo with the masked source, its prepare-pano sidecar, eight 1024 x 768 views and a manifest
+    shaped exactly as ladder_views.cut writes it, with a dated yes."""
+    root = env.root
+    src = root / "capture" / "stitched" / "pano-auto.masked.jpg"
+    Image.new("RGB", (64, 32), (9, 9, 9)).save(src)
+    monkeypatch.setattr(marble, "LADDER_SOURCE_SHA", _sha(src))
+    side = root / "pipeline" / "work" / "marble" / "pano-auto_2560.json"
+    side.write_text(json.dumps({"source": "capture/stitched/pano-auto.masked.jpg", "source_sha256": _sha(src)}))
+    vdir = root / "pipeline" / "work" / "ladder" / "views"
+    vdir.mkdir(parents=True)
+    views = []
+    for k, az in enumerate(AZ):
+        f = vdir / f"az{az:03d}.png"
+        Image.new("RGB", (1024, 768), (k * 20, 40, 90)).save(f)
+        views.append({"azimuth": az, "file": f"pipeline/work/ladder/views/{f.name}", "sha256": _sha(f),
+                      "pano_yaw_deg": float(az)})
+    by = {v["azimuth"]: v["file"] for v in views}
+    manifest = {"source": "capture/stitched/pano-auto.masked.jpg", "source_sha256": _sha(src),
+                "sidecar": "pipeline/work/marble/pano-auto_2560.json", "sidecar_source_sha256": _sha(src),
+                "views": views, "rungs": {r: [by[a] for a in azs] for r, azs in RUNG_AZ.items()},
+                "views_clean": {"answer": "yes", "date": "2026-11-22", "by": "Aaron"}}
+    (vdir / "manifest.json").write_text(json.dumps(manifest, indent=2))
+    env.vdir, env.manifest = vdir, manifest
+    return env
+
+
+def ladder_args(rung, **over):
+    a = {"--rung": rung, "--model": "marble-1.1-plus", "--purpose": "ladder test", "--seed": "1",
+         "--max-credits": "3200", "--floor": "0"}
+    a.update(over)
+    out = ["ladder"]
+    for k, v in a.items():
+        if v is not None:
+            out += [k, v]
+    return out + ["--yes"]
+
+
+def generate_body(env):
+    return next(kw for m, p, kw in env.calls if p == "/marble/v1/worlds:generate")["json"]
+
+
+def write_manifest(env):
+    (env.vdir / "manifest.json").write_text(json.dumps(env.manifest, indent=2))
+
+
+def test_worst_case_is_per_model_and_input_kind():
+    assert marble.WORST_CASE[("marble-1.1-plus", "pano")] == 3000
+    assert marble.WORST_CASE[("marble-1.1-plus", "image")] == 3080
+    assert marble.WORST_CASE[("marble-1.1-plus", "multi-image")] == 3100
+    assert marble.WORST_CASE[("marble-1.0-draft", "pano")] == 150
+
+
+def test_ladder_r1_sends_one_flat_image(ladder):
+    ladder.balances = [16200, 14620]
+    assert run(ladder, *ladder_args("R1")) == 0
+    body = generate_body(ladder)
+    wp = body["world_prompt"]
+    assert wp == {"type": "image", "is_pano": False, "image_prompt": {"source": "media_asset", "media_asset_id": "ma-1"}}
+    assert body["model"] == "marble-1.1-plus" and body["seed"] == 1 and body["permission"] == {"public": False}
+    puts = [kw for m, p, kw in ladder.calls if m == "PUT"]
+    assert len(puts) == 1 and puts[0]["data"] == (ladder.vdir / "az000.png").read_bytes()
+    done = spend_rows(ladder)[-1]
+    assert done["status"] == "done" and done["rung"] == "R1" and done["input_kind"] == "image"
+    assert done["credits_estimate"] == 3080 and done["credits_actual"] == 1580
+    assert done["reconstruct_images"] is False
+    assert [i["azimuth"] for i in done["inputs"]] == [0] and done["inputs"][0]["sha256"] == ladder.manifest["views"][0]["sha256"]
+
+
+@pytest.mark.parametrize("rung,azs,recon", [("R2", [0, 180], False), ("R4", [0, 90, 180, 270], False),
+                                            ("R8", list(AZ), True), ("R4r", [0, 90, 180, 270], True)])
+def test_ladder_multi_image_rungs(ladder, rung, azs, recon):
+    assert run(ladder, *ladder_args(rung)) == 0
+    wp = generate_body(ladder)["world_prompt"]
+    assert wp["type"] == "multi-image" and wp["reconstruct_images"] is recon
+    assert [i["azimuth"] for i in wp["multi_image_prompt"]] == azs
+    assert all(i["content"]["source"] == "media_asset" for i in wp["multi_image_prompt"])
+    puts = [kw["data"] for m, p, kw in ladder.calls if m == "PUT"]
+    assert puts == [(ladder.vdir / f"az{a:03d}.png").read_bytes() for a in azs]
+    done = spend_rows(ladder)[-1]
+    assert done["rung"] == rung and done["input_kind"] == "multi-image" and done["credits_estimate"] == 3100
+
+
+def test_ladder_refuses_without_a_dated_yes(ladder, capsys):
+    for bad in (None, "yes", {"answer": "yes"}, {"answer": "no", "date": "2026-11-22"}, {"answer": "yes", "date": "22 Nov"}):
+        ladder.manifest["views_clean"] = bad
+        write_manifest(ladder)
+        refused(ladder, run(ladder, *ladder_args("R1")), capsys, "views_clean")
+
+
+def test_ladder_refuses_a_view_changed_since_the_manifest(ladder, capsys):
+    Image.new("RGB", (1024, 768), "red").save(ladder.vdir / "az000.png")
+    refused(ladder, run(ladder, *ladder_args("R1")), capsys, "changed")
+
+
+def test_ladder_refuses_another_source(ladder, capsys, monkeypatch):
+    monkeypatch.setattr(marble, "LADDER_SOURCE_SHA", "0" * 64)
+    refused(ladder, run(ladder, *ladder_args("R1")), capsys, "source")
+
+
+def test_ladder_refuses_a_view_of_the_wrong_size(ladder, capsys):
+    f = ladder.vdir / "az000.png"
+    Image.new("RGB", (1024, 792), "white").save(f)
+    ladder.manifest["views"][0]["sha256"] = _sha(f)
+    write_manifest(ladder)
+    refused(ladder, run(ladder, *ladder_args("R1")), capsys, "1024 x 768")
+
+
+def test_ladder_refuses_a_view_carrying_text(ladder, capsys):
+    from PIL import PngImagePlugin
+    f = ladder.vdir / "az000.png"
+    info = PngImagePlugin.PngInfo()
+    info.add_text("Comment", "somebody's room")
+    Image.new("RGB", (1024, 768), "white").save(f, pnginfo=info)
+    ladder.manifest["views"][0]["sha256"] = _sha(f)
+    write_manifest(ladder)
+    refused(ladder, run(ladder, *ladder_args("R1")), capsys, "metadata")
+
+
+def test_ladder_refuses_other_models(ladder, capsys):
+    refused(ladder, run(ladder, *ladder_args("R1", **{"--model": "marble-1.1"})), capsys, "not allowed")
+
+
+def test_ladder_max_credits_reads_the_kind_worst_case(ladder, capsys):
+    refused(ladder, run(ladder, *ladder_args("R1", **{"--max-credits": "3000"})), capsys, "3080")
+
+
+def test_ladder_floor_reads_the_kind_worst_case(ladder, capsys):
+    ladder.balances = [3099]
+    assert run(ladder, *ladder_args("R8")) != 0
+    assert "below the floor" in capsys.readouterr().err
+    assert spend_rows(ladder) == []
+    ladder.calls.clear()
+    ladder.balances = [3100, 0]
+    assert run(ladder, *ladder_args("R8")) == 0
+
+
+def test_ladder_upload_failure_refuses_without_inline_fallback(ladder, capsys):
+    ladder.upload_ok = False
+    assert run(ladder, *ladder_args("R1")) != 0
+    assert not any(p == "/marble/v1/worlds:generate" for m, p in ladder.paths())
+    assert "data_base64" not in json.dumps([kw for m, p, kw in ladder.calls])
+
+
+def test_ladder_leaks_no_key_or_signature(ladder, capsys):
+    run(ladder, *ladder_args("R4"))
+    out = capsys.readouterr()
+    for text in (out.out, out.err, (ladder.root / "spend.jsonl").read_text(), (ladder.root / "LICENCES.md").read_text()):
+        assert KEY not in text and "SECRETSIGNATURE" not in text
+
+
+def test_ladder_rows_go_to_the_licence_table(ladder):
+    assert run(ladder, *ladder_args("R1")) == 0
+    lic = (ladder.root / "LICENCES.md").read_text()
+    assert any("| w-1 |" in ln and "marble-1.1-plus" in ln for ln in lic.splitlines())
