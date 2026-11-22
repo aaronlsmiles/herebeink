@@ -152,3 +152,9 @@ The first real material: one sitting in a narrow room with a high ceiling and ba
 - **The split changed:** covered 96.1 % (1,845,628), overlap 0.03 % (657), imagined 3.8 % (73,715), against 96.4 %, 0.7 % (12,603) and 2.9 % (56,323) before; measured 1,139,845 splats (11,089 trimmed); one coastline, 0.73 m (was 0.60 m). Almost all of Part 1's overlap band lay past the door.
 - **Shipped:** media v3 on the media host (v1 and v2 untouched), the page pointed at it and deployed; the live checks pass and the console is clean. The plain words now say "about four in every hundred" (3.8 %), and THESIS carries both splits. The film keeps the v2 look and was not re-cut.
 - **Left:** a faint grey smudge at the foot of the left jamb, on the frame's side of the seal.
+
+## 22 Nov — Part 2, R1: one photo
+
+- **Frozen first:** Part 2's criteria went into STATUS (and the public branch) before any ladder world existed, with the answer key changed by Amendment 1: the trained splat is mostly haze, so the key is the splat's rendered surface from the camera point rather than its few solid splats; a plane-fitted key was built and compared under a rule written first, and came out level with it, so the rendered key stood.
+- **Generated:** R1, one 66° photo facing the door, cut from the 360 still. 1,580 credits. Marble's reply does not echo the seed, so whether seeds are honoured cannot be read from it.
+- **Placed?** Not yet. Inside the photo's view the fit is close (6.5 to 6.8 cm), but Marble's room is narrower than the real one and its scale came out at 0.72 of what it states. The search picked a mirrored pose that is level; the unmirrored start Part 1's world used fits the room's shape better but sits 15° off level. One near-symmetric door wall and one photo cannot tell them apart by colour (0.49 against 0.50). Gate A failed on the colour check; the placement is Aaron's call.

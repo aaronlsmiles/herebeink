@@ -75,6 +75,7 @@ x: the share of all directions each rung's inputs showed. y: the share of V's di
 ## Rounds
 | # | Date | What was tried | Result | Kept? | £ |
 |---|---|---|---|---|---|
+| L1 | 22 Nov | Part 2, R1: one flat photo facing the door (`marble-1.1-plus`, seed 1; world `dff477c0`) | Generated, 1,580 credits; Gate A failed on the colour check: the search chose a mirrored pose (2.4° off level, residual 6.76 cm); Part 1's own start (yaw 0, not mirrored) fits better (two-way 15.9 against 26.6 cm, release 0.010 m) but sits 15° off level at 0.72 of Marble's stated scale. Placement waits on Aaron | Pending | £1.01 |
 
 ## Run log
 | Date | Task | From | To | Why |
@@ -110,7 +111,8 @@ x: the share of all directions each rung's inputs showed. y: the share of V's di
 - Not yet known: the cost on the phone, WebXR, and how soft silhouettes are on a real room.
 
 ## Spend
-- £0 spent on calls.
+- Part 2: R1 1,580 credits ($1.26, about £1.01 at the guard's £0.80 per $); balance 14,620 (22 Nov).
+- Part 1: £0 spent on calls.
 - About £8 of Marble credits bought (Gate M); balance 13,250 credits on 18 Nov.
 - GPU rental: £0 of the £6 cap.
 - £ per keeper: n/a.
