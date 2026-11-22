@@ -18,7 +18,7 @@ Generated worlds will carry their provenance in how they are drawn, not in a cap
 
 ## Status
 
-In progress; Part 1 of 2. Part 1 builds the walk-in world from one Marble world and ships it. Part 2 adds an evidence ladder: how the border moves as the model is shown more of the room.
+Part 1 of 2 shipped 22 Nov 2026. Part 1 builds the walk-in world from one Marble world and ships it. Part 2 adds an evidence ladder: how the border moves as the model is shown more of the room. Part 2 is not started; it gets its own plan and gate.
 
 The success criteria and kill rules were frozen before any capture or generation; they are in [STATUS.md](STATUS.md). Findings, round by round, are in [LOG.md](LOG.md).
 
