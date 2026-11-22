@@ -2,6 +2,7 @@
 
     uv run python align.py --world WORLD_ID [--start YAW[,mirror][,flip]] [--accept-by-eye "REASON"]
     uv run python align.py --world WORLD_ID --mode doorway --notes ../capture/NOTES.md
+    uv run python align.py --world WORLD_ID --rung R1 --fit-mask seen     # a world made from the ladder's flat views
 
 1. Initial transform. Marble builds its world from the pano still, so its origin is the pano camera and
    its raw axes are that camera's axes, in units that become metres when multiplied by
@@ -27,6 +28,15 @@
    within 10 degrees of the world's down, its photometric score is clearly the best of every distinct pose,
    enough of Marble is in the ICP set, and the scale ICP found agrees with Marble's metric factor. A person
    who has looked can overrule the added checks (never the residual) with --accept-by-eye "reason".
+7. A ladder rung (--rung, --fit-mask seen): only Marble splats whose direction from c falls inside the rung's
+   frustums (visibility.in_rung, under each candidate pose) take part in the scoring, ICP, the residual and
+   the colour check, and the colour check draws into the rung's own input views. Marble's origin is held at
+   c and only rotation and scale are fitted (point-to-plane at 30, 15 and 8 cm, pivoting about c). Then one
+   round at 8 cm releases translation (at the held scale, along the directions the fit set's surfaces pin;
+   see release): where the fit set's target normals span two non-parallel surfaces, a move of the origin of
+   0.10 m or more fails Gate A and no one can overrule it; otherwise align.json says "translation not
+   testable". The residual keeps the frozen definition over the fit set only, and the ICP share is taken
+   over the fit set. The world's recovered yaw is recorded.
 """
 from __future__ import annotations
 
@@ -39,6 +49,7 @@ from pathlib import Path
 import numpy as np
 import open3d as o3d
 from PIL import Image, ImageDraw, ImageFont
+from scipy import ndimage
 from scipy.spatial import cKDTree
 from scipy.spatial.transform import Rotation
 
@@ -77,6 +88,13 @@ MIN_ICP_SHARE = 0.30
 # ICP's scale against the metric factor's: the synthetic factor is 4 % off and fits 20 % off still converge;
 # outside these bounds the factor is wrong or ICP has shrunk or stretched the world to fit part of it.
 METRIC_RATIO_RANGE = (2 / 3, 1.5)
+# Released from a held fit, the origin moving this far means the world is not built at c (Gate A fails).
+RELEASE_MAX_M = 0.10
+# Two surfaces are non-parallel enough to pin translation when the second eigenvalue of the fit set's
+# target-normal scatter is at least this share of the largest.
+TWO_SURFACES = 0.1
+RUNGS = ("R1", "R2", "R4", "R8", "R4r")
+FIT_MASKS = ("all", "seen")
 NOTE = ("This is the fit of Marble's world to this room after alignment; it is not a measure of Marble's "
         "accuracy and is never shown beside another model's numbers.")
 
@@ -163,8 +181,12 @@ def two_way(t: np.ndarray, marble_raw: np.ndarray, tree: cKDTree, measured_world
 
 
 def similarity_round(t: np.ndarray, src: np.ndarray, tgt: np.ndarray, normals: np.ndarray, dist: float,
-                     iters: int = 20) -> np.ndarray:
-    """Point-to-plane ICP over rotation, translation and scale (about the source centroid), Huber-weighted."""
+                     iters: int = 20, hold: np.ndarray | None = None, free: np.ndarray | None = None,
+                     scale: bool = True) -> np.ndarray:
+    """Point-to-plane ICP over rotation, translation and scale (about the source centroid), Huber-weighted.
+    With hold (a world point), rotation and scale pivot about hold and translation is solved only along the
+    columns of free (3 x k; none by default), so a pose that sends Marble's origin to hold moves it only
+    along those directions; scale=False keeps the scale as it is."""
     tree = cKDTree(tgt)
     k = dist / 3
     for _ in range(iters):
@@ -174,15 +196,20 @@ def similarity_round(t: np.ndarray, src: np.ndarray, tgt: np.ndarray, normals: n
         if ok.sum() < 7:
             break
         p, q, n = p[ok], tgt[idx[ok]], normals[idx[ok]]
-        c = p.mean(axis=0)
+        c = p.mean(axis=0) if hold is None else np.asarray(hold, float)
         r = ((p - q) * n).sum(axis=1)
-        jac = np.c_[np.cross(p - c, n), n, ((p - c) * n).sum(axis=1)]
+        if hold is None:
+            jac = np.c_[np.cross(p - c, n), n, ((p - c) * n).sum(axis=1)]
+        else:
+            basis = np.zeros((3, 0)) if free is None else np.asarray(free, float).reshape(3, -1)
+            jac = np.c_[np.cross(p - c, n), n @ basis] if not scale else \
+                np.c_[np.cross(p - c, n), n @ basis, ((p - c) * n).sum(axis=1)]
         w = np.where(np.abs(r) <= k, 1.0, k / np.maximum(np.abs(r), 1e-12))
-        delta = np.linalg.solve(jac.T @ (jac * w[:, None]) + 1e-9 * np.eye(7), -jac.T @ (w * r))
-        rot = Rotation.from_rotvec(delta[:3]).as_matrix() * (1 + delta[6])
+        delta = np.linalg.solve(jac.T @ (jac * w[:, None]) + 1e-9 * np.eye(jac.shape[1]), -jac.T @ (w * r))
+        rot = Rotation.from_rotvec(delta[:3]).as_matrix() * (1 + delta[-1] if hold is None or scale else 1.0)
         m = np.eye(4)
         m[:3, :3] = rot
-        m[:3, 3] = c + delta[3:6] - rot @ c
+        m[:3, 3] = (c + delta[3:6] - rot @ c) if hold is None else (c + basis @ delta[3:3 + basis.shape[1]] - rot @ c)
         t = m @ t
         if np.abs(delta).max() < 1e-7:
             break
@@ -190,13 +217,13 @@ def similarity_round(t: np.ndarray, src: np.ndarray, tgt: np.ndarray, normals: n
 
 
 def icp(t: np.ndarray, marble_raw: np.ndarray, tree: cKDTree, target: o3d.geometry.PointCloud, scale_round: bool,
-        gate_m: float = ICP_GATE_M) -> np.ndarray:
+        gate_m: float = ICP_GATE_M, mask_fn=None) -> np.ndarray:
     crit = o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=60)
     reg = o3d.pipelines.registration
 
     def near(t_now):
         d, _ = tree.query(splats.apply(t_now, marble_raw), distance_upper_bound=gate_m, workers=-1)
-        return np.isfinite(d)
+        return np.isfinite(d) if mask_fn is None else np.isfinite(d) & mask_fn(t_now, marble_raw)
 
     def src(t_now):
         return cloud(splats.apply(t_now, marble_raw)[near(t_now)])
@@ -211,6 +238,93 @@ def icp(t: np.ndarray, marble_raw: np.ndarray, tree: cKDTree, target: o3d.geomet
         sel = cloud(marble_raw[near(t)] * 1.0)
         t = similarity_round(t, np.asarray(sel.points), np.asarray(target.points), np.asarray(target.normals), ROUNDS_M[-1])
     return t
+
+
+def fit_set(t: np.ndarray, marble_raw: np.ndarray, tree: cKDTree, mask_fn=None, gate_m: float = ICP_GATE_M) -> np.ndarray:
+    """The raw points that take part in the fit under pose t: within gate_m of a measured centre and, given a
+    mask, inside it."""
+    d, _ = tree.query(splats.apply(t, marble_raw), distance_upper_bound=gate_m, workers=-1)
+    ok = np.isfinite(d)
+    if mask_fn is not None:
+        ok &= mask_fn(t, marble_raw)
+    return marble_raw[ok]
+
+
+def icp_held(t: np.ndarray, marble_raw: np.ndarray, tree: cKDTree, target: o3d.geometry.PointCloud, hold: np.ndarray,
+             mask_fn=None, gate_m: float = ICP_GATE_M) -> np.ndarray:
+    """Rotation and scale only, about hold, in the point-to-plane distance at each of ROUNDS_M."""
+    tgt, nrm = np.asarray(target.points), np.asarray(target.normals)
+    for dist in ROUNDS_M:
+        sel = fit_set(t, marble_raw, tree, mask_fn, gate_m)
+        if len(sel) < 7:
+            break
+        t = similarity_round(t, np.asarray(cloud(sel).points), tgt, nrm, dist, hold=hold)
+    return t
+
+
+def release(t: np.ndarray, marble_raw: np.ndarray, tree: cKDTree, target: o3d.geometry.PointCloud, mask_fn=None) -> dict:
+    """One round from a held pose with translation released: how far Marble's origin moves, and whether the
+    fit set can say.
+
+    The round frees rotation and translation and keeps the held fit's scale. With scale free too, the move is
+    not defined on a frustum's worth of room: two or three walls that meet at a corner fit as well scaled
+    about any point of that corner, so a free round shrinks the world into it and the origin slides by metres
+    (1.3 m on the synthetic corner). Translation is pinned only along the directions the fit set's target
+    normals span, so it is freed only along their strong directions (eigenvalue at least TWO_SURFACES of the
+    largest), pivoting about the held origin. One such direction is one flat surface: not testable."""
+    tgt, nrm = np.asarray(target.points), np.asarray(target.normals)
+    pts = fit_set(t, marble_raw, tree, mask_fn)
+    if len(pts) < 7:
+        return {"translationReleaseM": None, "translationTestable": False, "translationNormalRatio": None}
+    _, idx = cKDTree(tgt).query(splats.apply(t, pts), workers=-1)
+    n = nrm[idx]
+    ev, vec = np.linalg.eigh(n.T @ n / len(n))
+    ev, vec = ev[::-1], vec[:, ::-1]
+    ratio = float(ev[1] / ev[0]) if ev[0] > 0 else 0.0
+    strong = vec[:, ev >= TWO_SURFACES * ev[0]]
+    free = similarity_round(t, np.asarray(cloud(pts).points), tgt, nrm, ROUNDS_M[-1], hold=t[:3, 3], free=strong, scale=False)
+    return {"translationReleaseM": round(float(np.linalg.norm(free[:3, 3] - t[:3, 3])), 4),
+            "translationTestable": bool(ratio >= TWO_SURFACES), "translationNormalRatio": round(ratio, 4)}
+
+
+def world_yaw_deg(t: np.ndarray, world_from_colmap: np.ndarray, r_cam: np.ndarray) -> float:
+    """The yaw of Marble's raw forward (+z) in the pano rig frame: lon from +z towards +x, as the views were cut."""
+    f = splats.split(t)[1] @ np.array([0.0, 0.0, 1.0])
+    d = r_cam @ splats.split(world_from_colmap)[1].T @ f
+    return round(float(np.degrees(np.arctan2(d[0], d[2]))), 3)
+
+
+def rung_mask(pose, manifest: dict, rung: str):
+    """mask_fn(t, raw) for a rung: which raw points, placed by t, lie inside the rung's frustums seen from c."""
+    import visibility
+
+    def mask(t: np.ndarray, pts: np.ndarray) -> np.ndarray:
+        return visibility.in_rung(visibility.rig_dirs(pose, splats.apply(t, pts))[0], manifest, rung)
+    return mask
+
+
+def ladder_input_views(manifest: dict, rung: str, pose, size: int = photo.SIZE, root: Path | None = None) -> list:
+    """The rung's input images as photo.View's, posed at c: a view cut at pano yaw a looks along Ry(-a) of the
+    pano rig frame, with the pinhole ladder_views cut it with."""
+    import ladder_views as lv
+    root = lv.ROOT if root is None else Path(root)
+    fov = manifest.get("fov_deg") or {}
+    h_fov, v_fov = float(fov.get("h", lv.H_FOV_DEG)), float(fov.get("v", lv.V_FOV_DEG))
+    w0, h0 = manifest.get("size") or lv.SIZE
+    h = max(1, round(size * h0 / w0))
+    k = np.array([[(size / 2) / np.tan(np.radians(h_fov / 2)), 0, size / 2],
+                  [0, (h / 2) / np.tan(np.radians(v_fov / 2)), h / 2], [0, 0, 1.0]])
+    yaw_of = {v["file"]: float(v["pano_yaw_deg"]) for v in manifest["views"]}
+    pitch = float(manifest.get("pitch_deg") or 0.0)
+    out = []
+    for f in manifest["rungs"]["R4" if rung == "R4r" else rung]:
+        rot = (Rotation.from_euler("x", -pitch, degrees=True) * Rotation.from_euler("y", -yaw_of[f], degrees=True)).as_matrix()
+        m = np.eye(4)
+        m[:3, :3] = rot @ pose.rig_from_world
+        m[:3, 3] = -m[:3, :3] @ np.asarray(pose.c_world, float)
+        img = Image.open(root / f).convert("L").resize((size, h), Image.Resampling.BOX)
+        out.append(photo.View(Path(f).name, ndimage.gaussian_filter(np.asarray(img, np.float64) / 255.0, photo.BLUR_PX), k, m))
+    return out
 
 
 def gravity_deg(t: np.ndarray, flip: bool) -> float:
@@ -241,8 +355,14 @@ def photo_pick(pick: np.ndarray, opacity: np.ndarray | None, n: int = PHOTO_SPLA
 
 def search(measured_world: np.ndarray, marble_raw: np.ndarray, world_from_colmap: np.ndarray, pano_c: np.ndarray,
            r_cam: np.ndarray, msf: float, views: list | None = None, marble_lum: np.ndarray | None = None,
-           marble_opacity: np.ndarray | None = None, start: tuple | None = None, log=print) -> dict:
-    """Score every start, run ICP from the promising ones, choose, and compute the frozen residual once."""
+           marble_opacity: np.ndarray | None = None, start: tuple | None = None, log=print, mask_fn=None,
+           hold: np.ndarray | None = None) -> dict:
+    """Score every start, run ICP from the promising ones, choose, and compute the frozen residual once.
+
+    mask_fn(t, raw) -> bool per raw point: only the points it keeps under pose t are scored, fitted and read
+    in the residual (a rung's frustums; default every point). hold, a world point: every pose sends Marble's
+    origin there and only rotation and scale are fitted; the result then carries the release check and the
+    world's yaw."""
     t_start = time.time()
     tree = cKDTree(measured_world)
     target = cloud(measured_world, normals=True)
@@ -254,14 +374,26 @@ def search(measured_world: np.ndarray, marble_raw: np.ndarray, world_from_colmap
         keep = photo_pick(pick, marble_opacity)
         raw_p, lum_p = marble_raw[keep], marble_lum[keep]
 
+    def fit(t, pts):
+        return pts if mask_fn is None else pts[mask_fn(t, pts)]
+
     def photometric(t):
-        return photo.score(views, splats.apply(t, raw_p), lum_p)["score"] if photo_ok else None
+        if not photo_ok:
+            return None
+        if mask_fn is None:
+            return photo.score(views, splats.apply(t, raw_p), lum_p)["score"]
+        m = mask_fn(t, raw_p)
+        return photo.score(views, splats.apply(t, raw_p[m]), lum_p[m])["score"]
+
+    meas_fit = meas_s if mask_fn is None else meas_s[mask_fn(np.eye(4), meas_s)]
 
     table = []
     for h in HYPOTHESES if start is None else HYPOTHESES + ([start] if start not in HYPOTHESES else []):
         t0 = initial(world_from_colmap, pano_c, r_cam, msf, hypothesis(*h))
+        if hold is not None:
+            t0[:3, 3] = hold
         table.append({"yawDeg": h[0], "mirror": h[1], "flip": h[2], "rawDown": "-y" if h[2] else "+y",
-                      "before": residual(t0, raw_s, tree)["medianCm"], "photoBefore": photometric(t0), "t0": t0})
+                      "before": residual(t0, fit(t0, raw_s), tree)["medianCm"], "photoBefore": photometric(t0), "t0": t0})
     far = lambda v: np.inf if v is None else v  # noqa: E731
     key = lambda e: (e["yawDeg"], e["mirror"], e["flip"])  # noqa: E731
     if start is not None:
@@ -272,9 +404,13 @@ def search(measured_world: np.ndarray, marble_raw: np.ndarray, world_from_colmap
         wanted = {PRIOR} | {key(e) for e in by_geo + by_photo}
     tried = [e for e in table if key(e) in wanted]
     for e in tried:
-        e["t"] = icp(e["t0"], raw_s, tree, target, scale_round=True)
-        e["after"] = residual(e["t"], raw_s, tree)["medianCm"]
-        tw = two_way(e["t"], raw_s, tree, meas_s)
+        if hold is None:
+            e["t"] = icp(e["t0"], raw_s, tree, target, scale_round=True, mask_fn=mask_fn)
+        else:
+            e["t"] = icp_held(e["t0"], raw_s, tree, target, hold, mask_fn)
+        fitted = fit(e["t"], raw_s)
+        e["after"] = residual(e["t"], fitted, tree)["medianCm"]
+        tw = two_way(e["t"], fitted, tree, meas_fit) if len(fitted) and len(meas_fit) else float("inf")
         e["twoWayCm"] = round(tw * 100, 3) if np.isfinite(tw) else None
         e["gravityDeg"] = round(gravity_deg(e["t"], e["flip"]), 2)
         e["photo"] = photometric(e["t"])
@@ -310,9 +446,10 @@ def search(measured_world: np.ndarray, marble_raw: np.ndarray, world_from_colmap
                            "views": len(views)}
 
     s_init, s_final = splats.split(chosen["t0"])[0], splats.split(t)[0]
-    full = residual(t, marble_raw, tree)
+    in_fit = None if mask_fn is None else mask_fn(t, marble_raw)
+    full = residual(t, marble_raw if in_fit is None else marble_raw[in_fit], tree)
     log(f"alignment search: {len(table)} starts, {len(tried)} through ICP, {time.time() - t_start:.0f} s")
-    return {
+    out = {
         "world_from_marble": t.tolist(), "initial": chosen["t0"].tolist(),
         "hypothesis": {"yawDeg": chosen["yawDeg"], "mirror": chosen["mirror"], "flip": chosen["flip"], "rawDown": chosen["rawDown"]},
         "hypotheses": [{k: e[k] for k in ("yawDeg", "mirror", "flip", "rawDown", "before", "photoBefore", "after", "twoWayCm",
@@ -325,6 +462,13 @@ def search(measured_world: np.ndarray, marble_raw: np.ndarray, world_from_colmap
         "sampleSplats": int(len(raw_s)),
         "seconds": round(time.time() - t_start, 1),
     }
+    if in_fit is not None:
+        out["fitSetSplats"] = int(in_fit.sum())
+    if hold is not None:
+        out.update(release(t, raw_s, tree, target, mask_fn))
+        out["worldYawDeg"] = world_yaw_deg(t, world_from_colmap, r_cam)
+        out["seconds"] = round(time.time() - t_start, 1)
+    return out
 
 
 def gate(r: dict, accept_by_eye: str | None = None) -> dict:
@@ -337,6 +481,17 @@ def gate(r: dict, accept_by_eye: str | None = None) -> dict:
         reasons.append("no Marble centre lies within 1 m of a measured centre: there is no residual to read")
     elif not residual_pass:
         reasons.append(f"residual median {res['medianCm']:.2f} cm is not under {GATE_A_CM:.0f} cm")
+    translation = None
+    if "translationTestable" in r:
+        translation = {"testable": r["translationTestable"], "releaseM": r["translationReleaseM"], "maxM": RELEASE_MAX_M}
+        if not r["translationTestable"]:
+            translation.update({"pass": True, "note": "translation not testable"})
+        else:
+            translation["pass"] = r["translationReleaseM"] < RELEASE_MAX_M
+            if not translation["pass"]:
+                reasons.append(f"released, Marble's origin moves {r['translationReleaseM']:.3f} m from c (limit "
+                               f"{RELEASE_MAX_M:.2f} m): the world is not built at the camera its inputs were taken from, "
+                               "so its translation cannot be held")
     g = r["chosen"]
     gravity = {"pass": g["gravityDeg"] <= GRAVITY_MAX_DEG, "angleDeg": g["gravityDeg"], "limitDeg": GRAVITY_MAX_DEG,
                "rawDown": g["rawDown"]}
@@ -356,10 +511,12 @@ def gate(r: dict, accept_by_eye: str | None = None) -> dict:
             reasons.append(f"photometric score {p['score']:.3f} is not clearly the best: "
                            f"{label((ru['yawDeg'], ru['mirror'], ru['flip']))} scores {ru['score']:.3f} "
                            f"(margin {margin:.3f}, needs {PHOTO_MARGIN})")
-    share = res["icpSet"] / max(r["marbleSplats"], 1)
+    of = r["fitSetSplats"] if "fitSetSplats" in r else r["marbleSplats"]
+    share = res["icpSet"] / max(of, 1)
     icp_share = {"pass": share >= MIN_ICP_SHARE, "share": round(share, 4), "min": MIN_ICP_SHARE}
     if not icp_share["pass"]:
-        reasons.append(f"the ICP set holds only {share:.0%} of Marble's splats (minimum share {MIN_ICP_SHARE:.0%}): "
+        whose = "the Marble splats inside the rung's frustums" if "fitSetSplats" in r else "Marble's splats"
+        reasons.append(f"the ICP set holds only {share:.0%} of {whose} (minimum share {MIN_ICP_SHARE:.0%}): "
                        "the fit covers a corner of Marble's world")
     ratio = r["scale"]["ratioToMetricFactor"]
     lo, hi = METRIC_RATIO_RANGE
@@ -368,10 +525,14 @@ def gate(r: dict, accept_by_eye: str | None = None) -> dict:
         reasons.append(f"ICP's scale is {ratio:.3f} x the metric factor's (allowed {lo:.2f} to {hi:.2f}): the metric "
                        "factor is wrong, or ICP shrank or stretched the world to fit part of it")
     automatic = gravity["pass"] and ph["pass"] and icp_share["pass"] and metric["pass"]
-    return {"thresholdCm": GATE_A_CM, "residualPass": residual_pass,
-            "pass": bool(residual_pass and (automatic or bool(accept_by_eye))),
-            "gravity": gravity, "photometric": ph, "icpShare": icp_share, "metricRatio": metric,
-            "acceptedByEye": accept_by_eye or None, "reasons": reasons}
+    held = translation is None or translation["pass"]
+    out = {"thresholdCm": GATE_A_CM, "residualPass": residual_pass,
+           "pass": bool(residual_pass and held and (automatic or bool(accept_by_eye))),
+           "gravity": gravity, "photometric": ph, "icpShare": icp_share, "metricRatio": metric,
+           "acceptedByEye": accept_by_eye or None, "reasons": reasons}
+    if translation is not None:
+        out["translation"] = translation
+    return out
 
 
 def contact_sheet(measured_world: np.ndarray, marble_raw: np.ndarray, t0: np.ndarray, t: np.ndarray, out: Path,
@@ -435,7 +596,17 @@ def main(argv: list[str] | None = None) -> int:
                     help="a person has looked at contact.png and the table and overrules the added checks (never the residual)")
     ap.add_argument("--mode", choices=["pano", "doorway"], default="pano")
     ap.add_argument("--notes", type=Path, default=Path("../capture/NOTES.md"), help="doorway mode: the Marble corner picks")
+    ap.add_argument("--rung", choices=RUNGS, default=None,
+                    help="a world made from this ladder rung's flat views (work/ladder/views/manifest.json); needs --fit-mask seen")
+    ap.add_argument("--fit-mask", choices=FIT_MASKS, default="all",
+                    help="all: every Marble splat (Part 1); seen: only those inside the rung's frustums, origin held at c")
     args = ap.parse_args(argv)
+    if args.fit_mask == "seen" and args.rung is None:
+        ap.error("--fit-mask seen needs --rung: the rung's frustums are the fit set")
+    if args.rung is not None and args.fit_mask != "seen":
+        ap.error("--rung places a flat rung on what it saw and needs --fit-mask seen")
+    if args.rung is not None and args.mode == "doorway":
+        ap.error("--rung is for a world made from the ladder's views, not the doorway fallback")
     if args.mode == "doorway":
         import doorway
         return doorway.main(args)
@@ -449,18 +620,40 @@ def main(argv: list[str] | None = None) -> int:
     marble = splats.read(args.work / "marble" / f"marble_{args.world}.ply")
     marble_raw = splats.centres(marble)
     colour = splats.base_colour(marble)
-    views = photo.pano_views(model, args.work / "images", w_from_c)
-    print(f"photometric check: {len(views)} pano view(s) on disk in {args.work / 'images'}")
+    mask_fn = hold = manifest = None
+    if args.rung is None:
+        views = photo.pano_views(model, args.work / "images", w_from_c)
+        print(f"photometric check: {len(views)} pano view(s) on disk in {args.work / 'images'}")
+    else:
+        import ladder_views
+        import visibility
+        root = args.work.resolve().parent.parent
+        try:
+            manifest = ladder_views.verify_manifest(args.work / "ladder" / "views" / "manifest.json", root)
+        except ladder_views.LadderError as e:
+            print(f"refused: {e}", file=sys.stderr)
+            return 1
+        pose = visibility.pose_from_work(args.work)
+        views = ladder_input_views(manifest, args.rung, pose, root=root)
+        mask_fn, hold = rung_mask(pose, manifest, args.rung), pose.c_world
+        print(f"photometric check: {len(views)} input view(s) of {args.rung}; fit set: Marble splats inside its frustums; "
+              f"origin held at c {np.round(hold, 3).tolist()}")
     r = search(measured, marble_raw, w_from_c, pano_c, r_cam, msf, views,
                None if colour is None else photo.luminance(colour),
                splats.opacity(marble) if "opacity" in marble["vertex"].data.dtype.names else None,
-               parse_start(args.start) if args.start else None)
+               parse_start(args.start) if args.start else None, mask_fn=mask_fn, hold=hold)
     out = args.work / "align" / args.world
     sheet = contact_sheet(measured, marble_raw, np.array(r["initial"]), np.array(r["world_from_marble"]), out / "contact.png",
                           scale["door"]["centre"], scale["pano"])
     g = gate(r, args.accept_by_eye)
     r.update({"worldId": args.world, "mode": "pano", "model": world.get("model"), "groundPlaneOffset": ground,
               "panoHeightM": float(scale["pano"][1]), "gateA": g, "note": NOTE, "contactSheet": str(sheet)})
+    if args.rung is not None:
+        r.update({"rung": args.rung, "fitMask": args.fit_mask,
+                  # Marble's quickstart azimuths: 0 front (the door, d), 90 right, 180 back, 270 left
+                  "worldAzimuthDeg": round((r["worldYawDeg"] - float(manifest["d_yaw_deg"])) % 360, 3),
+                  "inputAzimuthsDeg": [v["azimuth"] for v in manifest["views"]
+                                       if v["file"] in manifest["rungs"]["R4" if args.rung == "R4r" else args.rung]]})
     write_json(out / "align.json", r)
     print_table(r)
     h, res = r["hypothesis"], r["residual"]
@@ -471,9 +664,18 @@ def main(argv: list[str] | None = None) -> int:
     print(f"ground plane offset (as Marble gives it): {ground}; pano height measured {scale['pano'][1]:.2f} m")
     if res["medianCm"] is None:
         print("residual: none (no Marble centre within 1 m of a measured centre)")
-    else:
+    elif args.rung is None:
         print(f"residual: median {res['medianCm']:.2f} cm, 90th percentile {res['p90Cm']:.2f} cm, over {res['icpSet']} "
               f"Marble centres within 1 m of a measured centre ({g['icpShare']['share']:.0%} of {r['marbleSplats']})")
+    else:
+        print(f"residual: median {res['medianCm']:.2f} cm, 90th percentile {res['p90Cm']:.2f} cm, over {res['icpSet']} "
+              f"Marble centres inside {args.rung}'s frustums within 1 m of a measured centre "
+              f"({g['icpShare']['share']:.0%} of the {r['fitSetSplats']} inside)")
+        tr = g["translation"]
+        print("translation: not testable (the fit set does not span two non-parallel surfaces)" if not tr["testable"] else
+              f"translation: released, the origin moves {tr['releaseM']:.3f} m from c (limit {RELEASE_MAX_M:.2f} m)")
+        print(f"world yaw: raw forward at pano yaw {r['worldYawDeg']:.1f} deg, azimuth {r['worldAzimuthDeg']:.1f} deg "
+              f"from the door (inputs at {r['inputAzimuthsDeg']})")
     p = g["photometric"]
     if p["score"] is not None:
         ru = p["runnerUp"]
