@@ -50,3 +50,14 @@ def test_an_oblique_door_uses_its_own_axes():
     inside = c + 0.05 * np.array(n) + 0.30 * lateral + [0, 1.0, 0]
     beside = c + 0.05 * np.array(n) + 0.40 * lateral + [0, 1.0, 0]
     assert door_edge.sealed(np.array([inside, beside]), s).tolist() == [True, False]
+
+
+def test_rays_through_the_opening():
+    c = np.array([0.0, 1.25, 0.0])
+    dirs = np.array([[1.0, 0.0, 0.0],                     # straight through the door
+                     [1.0, 0.0, 0.5],                     # meets the plane at z = 1.0: beside the opening
+                     [1.0, 0.6, 0.0],                     # meets the plane at y = 2.45: above the head
+                     [-1.0, 0.0, 0.0],                    # away from the door
+                     [1.0, -0.6, 0.1]])                   # down through the threshold
+    dirs /= np.linalg.norm(dirs, axis=1, keepdims=True)
+    assert door_edge.through_opening(c, dirs, SCALE).tolist() == [True, False, False, False, True]

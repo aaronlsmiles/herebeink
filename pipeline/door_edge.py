@@ -56,3 +56,15 @@ def sealed(pts: np.ndarray, scale: dict) -> np.ndarray:
     o = opening(scale)
     rel = np.atleast_2d(np.asarray(pts, float)) - o.centre
     return (rel @ o.normal > 0) & (np.abs(rel @ o.lateral) < o.half_width) & (rel[:, 1] + o.centre[1] < o.top)
+
+
+def through_opening(origin: np.ndarray, dirs_world: np.ndarray, scale: dict) -> np.ndarray:
+    """Rays from origin (on the room side) that leave the room through the opening."""
+    o = opening(scale)
+    d = np.atleast_2d(np.asarray(dirs_world, float))
+    dn = d @ o.normal
+    with np.errstate(divide="ignore", invalid="ignore"):
+        t = ((o.centre - origin) @ o.normal) / dn
+    p = origin + d * np.where(dn > 1e-9, t, 0.0)[:, None]
+    rel = p - o.centre
+    return (dn > 1e-9) & (t > 0) & (np.abs(rel @ o.lateral) < o.half_width) & (p[:, 1] < o.top) & (p[:, 1] > -0.05)
