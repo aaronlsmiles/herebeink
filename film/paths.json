@@ -1,0 +1,47 @@
+{
+ "_doc": [
+  "Camera paths for the film, one per shot. web/vite/film-scene.ts serves the local export's scene.json with one shot's",
+  "filmPath in place of the export's (scene.json?shot=<name>); nothing else in the scene changes. Keys as in scene.json:",
+  "t in seconds, position in metres (floor y = 0, eye 1.6), yaw and pitch in degrees, yaw 0 looking along -z.",
+  "Why not the export's own path: its turn point (2.955, 1.6, 0.477) stands inside Marble's hallway wall, so its look back",
+  "shows blank paper. These paths turn 0.85 m past the door centre (2.609, 1.6, 0.421), where the hallway is open."
+ ],
+ "shots": {
+  "hook": {
+   "note": "Looking down at the pen line across the threshold, then up into the drawn doorway.",
+   "filmPath": [
+    {"t": 0, "position": [1.227, 1.6, 0.198], "yawDeg": -99.169, "pitchDeg": -48},
+    {"t": 6, "position": [1.079, 1.6, 0.174], "yawDeg": -99.169, "pitchDeg": -10}
+   ]
+  },
+  "walk": {
+   "note": "From the start pose to the door, over the line, into the hallway, round, and the look back. The turn is 0.85 m past the door centre, short of the hallway's far wall.",
+   "filmPath": [
+    {"t": 0, "position": [0.0, 1.6, 0.0], "yawDeg": -99.169, "pitchDeg": 0},
+    {"t": 1, "position": [0.0, 1.6, 0.0], "yawDeg": -99.169, "pitchDeg": 0},
+    {"t": 6, "position": [1.208, 1.6, 0.195], "yawDeg": -99.169, "pitchDeg": -8},
+    {"t": 8, "position": [1.208, 1.6, 0.195], "yawDeg": -99.169, "pitchDeg": -8},
+    {"t": 11, "position": [2.017, 1.6, 0.326], "yawDeg": -99.169, "pitchDeg": -14},
+    {"t": 13.5, "position": [2.313, 1.6, 0.373], "yawDeg": -70, "pitchDeg": -5},
+    {"t": 16.5, "position": [2.481, 1.6, 0.401], "yawDeg": -40, "pitchDeg": -3},
+    {"t": 17.5, "position": [2.481, 1.6, 0.401], "yawDeg": -40, "pitchDeg": -3},
+    {"t": 22.5, "position": [2.609, 1.6, 0.421], "yawDeg": 80.831, "pitchDeg": -4},
+    {"t": 28.5, "position": [2.461, 1.6, 0.397], "yawDeg": 80.831, "pitchDeg": -4}
+   ]
+  },
+  "switch": {
+   "note": "The view near the door that the design pass judged, rendered twice: ink, then ?ink=off.",
+   "filmPath": [
+    {"t": 0, "position": [1.208, 1.6, 0.195], "yawDeg": -99.169, "pitchDeg": -8},
+    {"t": 16, "position": [1.306, 1.6, 0.211], "yawDeg": -99.169, "pitchDeg": -8}
+   ]
+  },
+  "outro": {
+   "note": "The start pose, a slow step towards the drawn doorway.",
+   "filmPath": [
+    {"t": 0, "position": [0.0, 1.6, 0.0], "yawDeg": -99.169, "pitchDeg": 0},
+    {"t": 10, "position": [0.24, 1.6, 0.039], "yawDeg": -99.169, "pitchDeg": -2}
+   ]
+  }
+ }
+}

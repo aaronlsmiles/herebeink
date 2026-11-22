@@ -1,0 +1,41 @@
+@font-face {
+  font-family: "Geist";
+  src: url("/fonts/geist-latin.woff2") format("woff2");
+  font-weight: 400 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Geist Mono";
+  src: url("/fonts/geist-mono-latin.woff2") format("woff2");
+  font-weight: 400 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: light;
+  --paper: #f4efe4;
+  --ink: #1c1a17;
+  --unscanned: #8f908c;
+  /* Blue pencil: the plain-words voice only, the same values on every studio site. */
+  --pencil: #4a82c4;
+  --pencil-ink: #1b4a8a;
+  --pencil-wash: #d9e4f2;
+  --font: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --paper: #1c1a17;
+    --ink: #e8e2d4;
+    --unscanned: #5c5d5a;
+    --pencil: #6a9fe0;
+    --pencil-ink: #aecbf4;
+    --pencil-wash: #1f2b3b;
+  }
+}
+
+html, body { margin: 0; height: 100%; background: var(--paper); color: var(--ink); font-family: var(--font); }
+canvas { display: block; }

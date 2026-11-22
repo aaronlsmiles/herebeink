@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://herebeink.studionephele.com/schema/coastline.schema.json",
+  "title": "Here Be Ink coastline",
+  "description": "Where the measured floor ends and the imagined floor carries on, as polylines on the floor (x, z) in world metres.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "units", "frame", "gridM", "floorBandM", "radiiM", "gridOrigin", "gridShape", "polylines", "lengthM"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "units": {"const": "m"},
+    "frame": {"type": "string"},
+    "gridM": {"type": "number", "exclusiveMinimum": 0},
+    "floorBandM": {"type": "number", "exclusiveMinimum": 0},
+    "radiiM": {
+      "type": "object", "additionalProperties": false, "required": ["covered", "overlap"],
+      "properties": {"covered": {"type": "number"}, "overlap": {"type": "number"}}
+    },
+    "gridOrigin": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}},
+    "gridShape": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "integer", "minimum": 1}},
+    "polylines": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["closed", "points"],
+        "properties": {
+          "closed": {"type": "boolean"},
+          "points": {"type": "array", "minItems": 2, "items": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}}}
+        }
+      }
+    },
+    "lengthM": {"type": "number", "minimum": 0}
+  }
+}

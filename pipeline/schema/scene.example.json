@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-11-19T00:00:00Z",
+  "units": "m",
+  "frame": {"up": [0.0, 1.0, 0.0], "floorY": 0.0, "longAxis": [1.0, 0.0, 0.0]},
+  "splats": {
+    "measured": {"url": "measured.spz", "sha256": "4e8a3060a31d6199c11b16b5e1b2772378b3ac92d817b6eac2290555041440a6", "bytes": 1677133, "splats": 185121, "shDegree": 0, "provenance": 0, "matrix": [0.283433619, -3.2619e-05, -0.237829045, 0.0, -0.008201457, -0.369777587, -0.009723399, 0.0, -0.237687593, 0.012720351, -0.283266787, 0.0, 0.300130416, 1.099253556, -0.399768441, 1.0]},
+    "measuredPreview": {"url": "measured-preview.spz", "sha256": "af5284ff0fe88e2f5bbb44817e7dfb34687cb8442bf73fafc62d64a1a41fc22f", "bytes": 373194, "splats": 40000, "shDegree": 0, "provenance": 0, "matrix": [0.283433619, -3.2619e-05, -0.237829045, 0.0, -0.008201457, -0.369777587, -0.009723399, 0.0, -0.237687593, 0.012720351, -0.283266787, 0.0, 0.300130416, 1.099253556, -0.399768441, 1.0]},
+    "overlap": {"url": "overlap.spz", "sha256": "b9da3a036479acf4c5e1f74a9dabd01bc6550bbbc400e3fb3766c2c38ccf7810", "bytes": 49425, "splats": 5779, "shDegree": 0, "provenance": 0.5, "matrix": [0.207388327, 0.000949971, 1.687403541, 0.0, 0.000490869, -1.70010014, 0.000896789, 0.0, 1.687403737, 0.000377807, -0.207388564, 0.0, 0.03005797, 1.579406388, 0.009799612, 1.0]},
+    "imagined": {"url": "imagined.spz", "sha256": "e6b1baa4b2230f6c80d5721ba05705f69b9fb19e3972b898710c6085e8ca9477", "bytes": 188306, "splats": 22426, "shDegree": 0, "provenance": 1, "matrix": [0.207388327, 0.000949971, 1.687403541, 0.0, 0.000490869, -1.70010014, 0.000896789, 0.0, 1.687403737, 0.000377807, -0.207388564, 0.0, 0.03005797, 1.579406388, 0.009799612, 1.0]}
+  },
+  "radiiM": {"covered": 0.15, "overlap": 0.5},
+  "floor": {"normal": [0.0, 1.0, 0.0], "y": 0.0},
+  "walkable": {"polygons": [[[2.05, -1.7], [2.15, -0.6], [3.2, -0.45], [3.2, 0.75], [3.2, 1.95], [2.65, 2.6], [2.0, 2.05], [1.15, 1.7], [-0.05, 1.7], [-1.25, 1.7], [-2.1, 1.35], [-2.1, 0.15], [-2.1, -1.05], [-1.55, -1.7], [-0.35, -1.7], [0.85, -1.7]]], "dilationM": 0.5},
+  "eyeHeightM": 1.6,
+  "start": {"position": [-5.551115123125783e-17, 1.6, 0.0], "yawDeg": -90.021, "pitchDeg": 0.0},
+  "door": {"centre": [2.0004, -0.0001, 0.0007], "widthM": 0.9, "outward": [1.0, 0.0, 0.000363]},
+  "filmPath": [{"t": 0.0, "position": [-5.551115123125783e-17, 1.6, 0.0], "yawDeg": -90.021, "pitchDeg": 0.0}, {"t": 4.0, "position": [1.2, 1.6, 0.0], "yawDeg": -90.021, "pitchDeg": -8.0}, {"t": 8.0, "position": [3.2, 1.6, 0.001], "yawDeg": -90.021, "pitchDeg": -8.0}, {"t": 11.0, "position": [3.2, 1.6, 0.001], "yawDeg": 89.979, "pitchDeg": 0.0}, {"t": 15.0, "position": [1.2, 1.6, 0.0], "yawDeg": 89.979, "pitchDeg": 0.0}],
+  "light": {"direction": [-0.819152, -0.573576, -0.000297]},
+  "coastline": {"url": "coastline.json", "sha256": "43c3bed237c03fb435f679e54ed9eab4d5601e9d5a7558670abce7616700f2c7", "bytes": 2114, "stretches": 1, "lengthM": 0.896},
+  "counts": {"measured": 185121, "measuredPreview": 40000, "marble": 143242, "covered": 115037, "overlap": 5779, "imagined": 22426},
+  "alignment": {"medianCm": 1.487, "p90Cm": 50.406, "icpSet": 134313, "gateAPass": true, "note": "This is the fit of Marble's world to this room after alignment; it is not a measure of Marble's accuracy and is never shown beside another model's numbers."},
+  "sources": {"measured": "Gaussian splat trained with LichtFeld Studio on views cut from three 360-degree video passes, posed with COLMAP", "imagined": {"provider": "World Labs", "model": "marble-1.1", "worldId": "fixture"}},
+  "credit": "The imagined half was generated with Marble by World Labs, through its World API."
+}

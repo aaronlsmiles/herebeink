@@ -1,0 +1,46 @@
+# capture media stay local; the notes are committed
+capture/*
+!capture/NOTES.md
+!capture/NOTES.template.md
+
+# splats
+*.ply
+*.spz
+*.rad
+
+# film frames and exports
+film/frames/
+film/exports/
+film/out/
+*.mp4
+*.mov
+*.wav
+
+# secrets
+.env.local
+.env*
+!*.example
+
+# COLMAP outputs
+pipeline/work/
+
+# tooling
+node_modules/
+dist/
+.venv/
+__pycache__/
+.pytest_cache/
+.playwright-mcp/
+test-results/
+.DS_Store
+
+# staged deploy folder (tools/deploy/stage.sh)
+/deploy/
+
+# web
+web/public/sample/
+web/shots/
+web/test-results/
+
+# the viewer's synthetic fixture is committed so the web tests run offline
+!web/public/fixture/*.spz

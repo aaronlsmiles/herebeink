@@ -1,0 +1,170 @@
+/* In plain words: the second voice, in the studio's blue pencil. Animators rough in blue before they ink, so the
+   plain telling is the sketch under the page's ink. Blue marks only this voice; the text stays ink for legibility,
+   and the wash alone sets the layer apart, with no rules. Square corners, Geist, body at 16 px for older eyes.
+   Nothing here moves: the layer appears when asked and stays still. */
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap;
+}
+
+/* The layer is there only when the reader has turned it on. */
+html:not([data-plain="on"]) .pw-note,
+html:not([data-plain="on"]) .pw-band,
+html:not([data-plain="on"]) .pw-fold { display: none; }
+
+.pw-note {
+  display: flex;
+  gap: 10px;
+  max-width: 60ch;
+  box-sizing: border-box;
+  padding: 10px 14px 12px 10px;
+  background: var(--pencil-wash);
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: 1.5;
+  text-align: left;
+}
+.pw-note .pw-mark { margin-top: 4px; }
+.pw-text { position: relative; min-width: 0; padding-left: 16px; text-wrap: pretty; }
+.pw-text p { margin: 0; }
+.pw-text p + p { margin-top: 8px; }
+/* The hand-drawn rule: a wobbling double stroke, tiled down the text. */
+.pw-text::before {
+  content: ""; position: absolute; left: 0; top: 3px; bottom: 3px; width: 8px; background: var(--pencil);
+  -webkit-mask: var(--pw-rule-mask) 0 0 / 8px 96px repeat-y; mask: var(--pw-rule-mask) 0 0 / 8px 96px repeat-y;
+}
+.pw-text .pw-for { margin: 0 0 2px; font-size: 0.75rem; font-weight: 600; color: var(--pencil-ink); }
+
+/* Notes on the first screen, before the part each explains. */
+.intro .pw-note { margin: 0 0 12px; }
+.intro .pw-note[data-note="loading"] { margin: 12px 0 0; }
+.intro .notes .pw-note { margin: 10px 0 4px; }
+.map-legend .pw-note { margin: 0 0 14px; }
+
+/* The band: a chapter of the story, on the first screen and then at the walk's edge. */
+.pw-band {
+  box-sizing: border-box;
+  padding: 14px 18px 12px;
+  background: var(--pencil-wash);
+  color: var(--ink);
+  line-height: 1.5;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: var(--pencil) var(--pencil-wash);
+}
+.pw-band:focus { outline: none; }
+.pw-band:focus-visible { outline: 2px solid var(--pencil-ink); outline-offset: -2px; }
+.pw-label { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em; color: var(--pencil-ink); }
+.pw-title { margin: 2px 0 10px; font-size: 1.25rem; font-weight: 650; letter-spacing: -0.01em; line-height: 1.2; }
+.pw-band > .pw-text { max-width: 60ch; font-size: 1rem; line-height: 1.55; }
+.pw-band > .pw-note { margin-top: 12px; background: var(--paper); }
+.pw-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 20px; margin: 12px 0 0; }
+/* "Next" wears the invite's button but not its press: the design pass gave that move to the invite alone. */
+.pw-next { transition: background-color 120ms ease; }
+.pw-next:active { transform: none; }
+.pw-quiet {
+  display: inline-flex; align-items: center; min-height: 40px; padding: 0; background: none; border: 0;
+  color: var(--pencil-ink); font-weight: 600; text-decoration: underline; text-underline-offset: 3px;
+}
+.intro .pw-band { margin: 0 0 20px; }
+
+/* The story map, on wide screens: every chapter, the current one ringed in blue pencil. */
+.pw-trail { display: none; flex-wrap: wrap; gap: 4px; margin: 0 0 12px; padding: 0; list-style: none; }
+.pw-trail button {
+  min-height: 30px; padding: 0 10px; background: transparent; border: 1.5px solid transparent; border-radius: 999px;
+  color: var(--pencil-ink); font-size: 0.8125rem; font-weight: 500;
+}
+.pw-trail button[aria-current] { border-color: var(--pencil); font-weight: 600; }
+@media (min-width: 1024px) { .pw-trail { display: flex; } }
+
+/* The switch in the top bar, and what sits below the bar: the bar's notes, and on phones the band. */
+.pw-switch { display: inline-flex; align-items: center; gap: 6px; }
+/* Pressed, it takes the voice's wash rather than the bar's ink, so its blue never sits on black. */
+.chip.pw-switch[aria-pressed="true"] { background: var(--pencil-wash); color: var(--pencil-ink); text-decoration: underline; text-decoration-color: var(--pencil); text-decoration-thickness: 2px; text-underline-offset: 5px; }
+.pw-stack {
+  position: absolute;
+  top: var(--pw-top, 72px);
+  right: max(var(--gutter), env(safe-area-inset-right));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  width: min(22rem, calc(100% - 2 * var(--gutter)));
+  max-height: calc(100% - var(--pw-top, 72px) - var(--gutter));
+  pointer-events: none;
+}
+.pw-stack > * { pointer-events: auto; }
+.pw-fold { width: 100%; box-sizing: border-box; overflow: auto; background: var(--pencil-wash); color: var(--ink); }
+.pw-fold summary {
+  display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px;
+  color: var(--pencil-ink); font-weight: 600; cursor: pointer; list-style: none;
+}
+.pw-fold summary::-webkit-details-marker { display: none; }
+.pw-fold summary::after { content: "+"; margin-left: auto; font-weight: 500; }
+.pw-fold[open] summary::after { content: "−"; }
+.pw-fold summary:focus-visible { outline: 2px solid var(--pencil-ink); outline-offset: -2px; }
+.pw-fold .pw-note { padding: 2px 14px 12px 14px; background: transparent; }
+.pw-fold .pw-note > .pw-mark { display: none; }
+
+/* Wide screens: the band sits where the cartouche did, bottom left, clear of the doorway at the start view. */
+@media (min-width: 720px) {
+  .pw-stack > .pw-band {
+    position: fixed;
+    left: max(var(--gutter), env(safe-area-inset-left));
+    bottom: max(var(--gutter), env(safe-area-inset-bottom));
+    width: var(--card-w, min(30rem, calc(100% - 2 * var(--gutter))));
+    /* Never reaches the bar's notes at the right, however large the text is set. */
+    max-width: calc(100% - 22rem - 3 * var(--gutter));
+    max-height: calc(100% - var(--pw-top, 72px) - var(--gutter));
+  }
+  /* Short and narrow (a phone on its side, a page zoomed to 200 %): the band keeps clear of the bar's notes at the right. */
+  @media (max-width: 879px) and (max-height: 600px) {
+    .pw-stack > .pw-band { width: min(30rem, calc(100% - 22rem - 3 * var(--gutter))); }
+  }
+  /* The map's key takes the top left, so over the map the band joins the column below the bar, first in it;
+     the column scrolls as one if the bar's notes are open too. */
+  .map:not([hidden]) ~ .pw-stack { width: min(24rem, calc(100% - 25rem - 3 * var(--gutter))); overflow: auto; }
+  .map:not([hidden]) ~ .pw-stack > .pw-band { position: static; order: -1; width: 100%; max-width: none; max-height: none; flex: none; }
+  .map:not([hidden]) ~ .pw-stack > .pw-fold { flex: none; }
+}
+/* Phones: the band hangs below the bar, so the thumbs keep the lower half for walking and looking. */
+@media (max-width: 719px) {
+  .pw-stack { left: max(var(--gutter), env(safe-area-inset-left)); width: auto; overflow: auto; }
+  .pw-stack > .pw-band { width: 100%; max-height: 40vh; flex: none; }
+  .pw-fold:not([open]) { width: auto; }
+  /* Over the map the key sits at the foot with its own note: the band and the key share the height, and the
+     survey keeps a strip between them. */
+  .map:not([hidden]) ~ .pw-stack > .pw-band { max-height: 28vh; }
+  html[data-plain="on"] .map-legend { max-height: 40vh; overflow: auto; overscroll-behavior: contain; }
+}
+/* Held upright on a phone, the column stops above the foot: the tilt switch and its note while walking, the key
+   over the map. Open, the bar's notes would otherwise run under them and cover the switch. */
+@media (max-width: 719px) and (orientation: portrait) {
+  #app:has(.gyro-button) .pw-stack { max-height: calc(100% - var(--pw-top, 72px) - 15rem); }
+}
+@media (max-width: 719px) {
+  #app:has(.map:not([hidden])) .pw-stack { max-height: calc(100% - var(--pw-top, 72px) - 40vh - 2 * var(--gutter)); }
+}
+
+/* The tilt switch's note sits just above it, at the bottom right; over the map the key has that corner. */
+.map:not([hidden]) ~ .touch-ui .pw-note { display: none; }
+.touch-ui .pw-note {
+  position: absolute;
+  right: max(var(--gutter), env(safe-area-inset-right));
+  bottom: calc(max(var(--gutter), env(safe-area-inset-bottom)) + 16px + var(--tap) + 8px);
+  width: min(17rem, calc(100% - 2 * var(--gutter)));
+  pointer-events: auto;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pw-trail button:not([aria-current]):hover { background: color-mix(in srgb, var(--pencil) 14%, transparent); }
+  .pw-quiet:hover { text-decoration-thickness: 2px; }
+  .pw-fold summary:hover { background: color-mix(in srgb, var(--pencil) 12%, transparent); }
+}
+
+/* Forced colours drop backgrounds and masks: keep a visible left border on the band and the notes. */
+@media (forced-colors: active) {
+  .pw-band, .pw-note, .pw-fold { border-left: 4px solid CanvasText; }
+  .pw-text::before { display: none; }
+}

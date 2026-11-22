@@ -1,0 +1,494 @@
+"""Marble's world into the measured world frame: work/align/<world_id>/align.json, the residual Gate A reads.
+
+    uv run python align.py --world WORLD_ID [--start YAW[,mirror][,flip]] [--accept-by-eye "REASON"]
+    uv run python align.py --world WORLD_ID --mode doorway --notes ../capture/NOTES.md
+
+1. Initial transform. Marble builds its world from the pano still, so its origin is the pano camera and
+   its raw axes are that camera's axes, in units that become metres when multiplied by
+   metric_scale_factor. The pano's pose in the measured frame is COLMAP's (rig/y000p00/5pano_0000.jpg).
+   How those raw axes sit on the camera is not settled (World Labs' docs call raw +x "left", which is a
+   mirror of OpenCV; a y-up export is a half-turn about x; the yaw of Marble's forward is undocumented), so
+   48 starts are scored: every yaw in 30 degree steps, mirrored or not, and turned over or not.
+2. Each start is scored two ways on a seeded sample of Marble's splats: geometrically (the residual before
+   ICP) and photometrically (photo.py: Marble's coloured centres drawn into the pano's registered views and
+   correlated with the real images; from the pano's own centre that does not depend on scale). The best
+   three of each, and the documented start, go on to ICP.
+3. ICP: one point-to-point round with scaling, three point-to-plane rounds (Huber) at 30, 15 and 8 cm on
+   Marble centres within 1 m of a measured centre, both clouds at 2 cm voxels, and a last round solving
+   rotation, translation and scale together in the point-to-plane distance (point-to-point scaling is
+   biased when the clouds are two samplings of one surface).
+4. The choice: among starts that ended with their own "down" pointing down and whose two-way geometric
+   score (both directions, capped at 25 cm) is within half again of the best, the one that looks most like
+   the pano. A box room fits nearly as well turned round, mirrored or upside down; the photograph does not.
+5. The residual, as frozen in STATUS: the median nearest-neighbour distance, in cm, from Marble centres
+   within 1 m of a measured centre (the ICP set), over every Marble centre, after alignment and before the
+   provenance split. It is this room's fit, never a Marble accuracy score.
+6. Gate A passes when the residual is under 10 cm and the added checks hold: the chosen start's down lands
+   within 10 degrees of the world's down, its photometric score is clearly the best of every distinct pose,
+   enough of Marble is in the ICP set, and the scale ICP found agrees with Marble's metric factor. A person
+   who has looked can overrule the added checks (never the residual) with --accept-by-eye "reason".
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+import time
+from pathlib import Path
+
+import numpy as np
+import open3d as o3d
+from PIL import Image, ImageDraw, ImageFont
+from scipy.spatial import cKDTree
+from scipy.spatial.transform import Rotation
+
+import photo
+import plots
+import splats
+from colmap_model import read_model
+
+ICP_GATE_M = 1.0
+VOXEL_M = 0.02
+ROUNDS_M = (0.30, 0.15, 0.08)
+GATE_A_CM = 10.0
+YAW_STEP = 30
+HYPOTHESES = [(yaw, mirror, flip) for flip in (False, True) for mirror in (False, True) for yaw in range(0, 360, YAW_STEP)]
+PRIOR = (0, False, False)
+KEEP_GEOMETRIC = 3
+KEEP_PHOTOMETRIC = 3
+CAP_M = 0.25
+# Near-ties: the half-turned box room scored 10.1 cm two-way against 6.7 cm for the right pose (1.5 x),
+# and with a re-imagined room every start came within 3 %; within 1.5 x, geometry is not allowed to decide.
+GEOMETRIC_TIE = 1.5
+SAMPLE_SPLATS = 300_000
+PHOTO_SPLATS = 100_000
+PHOTO_MIN_OPACITY = 0.2
+GRAVITY_MAX_DEG = 10.0
+# Two poses are the same answer when they share handedness and differ by less than this; it sits between
+# the 7 degrees ICP typically moves a start and the 30 degree spacing of the starts.
+SAME_POSE_DEG = 25.0
+# Photometric margin: on the synthetic variants the right pose beat every other distinct pose by 0.23 to 0.4
+# in correlation (tests/test_align_variants.py prints the table); a real Marble world re-imagines the room,
+# so the bar is set at half the smallest synthetic margin.
+PHOTO_MARGIN = 0.10
+# A fit that covers under this share of Marble's world is fitting a corner of it: the pano sees the whole
+# room, so most of what Marble makes from it lies within a metre of the measured room.
+MIN_ICP_SHARE = 0.30
+# ICP's scale against the metric factor's: the synthetic factor is 4 % off and fits 20 % off still converge;
+# outside these bounds the factor is wrong or ICP has shrunk or stretched the world to fit part of it.
+METRIC_RATIO_RANGE = (2 / 3, 1.5)
+NOTE = ("This is the fit of Marble's world to this room after alignment; it is not a measure of Marble's "
+        "accuracy and is never shown beside another model's numbers.")
+
+
+def metric_factor(world: dict) -> tuple[float, float | None]:
+    meta = ((world.get("assets") or {}).get("splats") or {}).get("semantics_metadata") or {}
+    if "metric_scale_factor" not in meta:
+        raise ValueError("the world JSON has no assets.splats.semantics_metadata.metric_scale_factor")
+    msf = float(meta["metric_scale_factor"])
+    if not np.isfinite(msf) or msf <= 0:
+        raise ValueError(f"the world JSON's metric_scale_factor is {msf}, not a positive number")
+    return msf, meta.get("ground_plane_offset")
+
+
+def pano_pose(model) -> tuple[np.ndarray, np.ndarray]:
+    im = next((i for i in model.images.values() if i.name == "rig/y000p00/5pano_0000.jpg"), None)
+    if im is None:
+        raise ValueError("the pano's front view is not in the COLMAP model; Gate A cannot start without its pose")
+    r = Rotation.from_quat(im.qvec, scalar_first=True).as_matrix()
+    return -r.T @ np.array(im.tvec), r
+
+
+def hypothesis(yaw_deg: float, mirror: bool, flip: bool = False) -> np.ndarray:
+    """Raw axes into the pano camera's axes: mirror x first, then turn over about x, then the yaw about y."""
+    h = Rotation.from_euler("y", yaw_deg, degrees=True).as_matrix()
+    if flip:
+        h = h @ np.diag([1.0, -1.0, -1.0])
+    if mirror:
+        h = h @ np.diag([-1.0, 1.0, 1.0])
+    return h
+
+
+def raw_down(flip: bool) -> np.ndarray:
+    """The raw axis a start takes for down: +y for OpenCV axes, -y for a world exported y-up."""
+    return np.array([0.0, -1.0, 0.0]) if flip else np.array([0.0, 1.0, 0.0])
+
+
+def parse_start(text: str) -> tuple[float, bool, bool]:
+    yaw, *flags = [p.strip() for p in text.split(",")]
+    unknown = set(flags) - {"mirror", "flip", ""}
+    if unknown:
+        raise ValueError(f"--start takes YAW[,mirror][,flip]; did not understand {sorted(unknown)}")
+    return float(yaw), "mirror" in flags, "flip" in flags
+
+
+def label(h: tuple) -> str:
+    yaw, mirror, flip = h
+    return f"yaw {yaw:g}" + (", mirrored" if mirror else "") + (", turned over" if flip else "")
+
+
+def initial(world_from_colmap: np.ndarray, pano_c: np.ndarray, r_cam: np.ndarray, msf: float, h: np.ndarray) -> np.ndarray:
+    s = splats.split(world_from_colmap)[0]
+    m = np.eye(4)
+    m[:3, :3] = r_cam.T @ h * (msf / s)
+    m[:3, 3] = pano_c
+    return world_from_colmap @ m
+
+
+def cloud(pts: np.ndarray, normals: bool = False) -> o3d.geometry.PointCloud:
+    pc = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(pts)).voxel_down_sample(VOXEL_M)
+    if normals:
+        pc.estimate_normals(o3d.geometry.KDTreeSearchParamHybrid(radius=4 * VOXEL_M, max_nn=30))
+    return pc
+
+
+def residual(t: np.ndarray, marble_raw: np.ndarray, tree: cKDTree) -> dict:
+    d, _ = tree.query(splats.apply(t, marble_raw), distance_upper_bound=ICP_GATE_M, workers=-1)
+    d = d[np.isfinite(d)]
+    if len(d) == 0:
+        return {"medianCm": None, "p90Cm": None, "icpSet": 0}
+    return {"medianCm": round(float(np.median(d) * 100), 3), "p90Cm": round(float(np.percentile(d, 90) * 100), 3),
+            "icpSet": int(len(d))}
+
+
+def two_way(t: np.ndarray, marble_raw: np.ndarray, tree: cKDTree, measured_world: np.ndarray) -> float:
+    """Mean capped distance both ways, over each side's points within 1 m of the other: low only if the shapes agree."""
+    pts = splats.apply(t, marble_raw)
+    d1, _ = tree.query(pts, distance_upper_bound=ICP_GATE_M, workers=-1)
+    d2, _ = cKDTree(pts).query(measured_world, distance_upper_bound=ICP_GATE_M, workers=-1)
+    d1, d2 = d1[np.isfinite(d1)], d2[np.isfinite(d2)]
+    if len(d1) == 0 or len(d2) == 0:
+        return float("inf")
+    return float(np.minimum(d1, CAP_M).mean() + np.minimum(d2, CAP_M).mean())
+
+
+def similarity_round(t: np.ndarray, src: np.ndarray, tgt: np.ndarray, normals: np.ndarray, dist: float,
+                     iters: int = 20) -> np.ndarray:
+    """Point-to-plane ICP over rotation, translation and scale (about the source centroid), Huber-weighted."""
+    tree = cKDTree(tgt)
+    k = dist / 3
+    for _ in range(iters):
+        p = splats.apply(t, src)
+        d, idx = tree.query(p, distance_upper_bound=dist, workers=-1)
+        ok = np.isfinite(d)
+        if ok.sum() < 7:
+            break
+        p, q, n = p[ok], tgt[idx[ok]], normals[idx[ok]]
+        c = p.mean(axis=0)
+        r = ((p - q) * n).sum(axis=1)
+        jac = np.c_[np.cross(p - c, n), n, ((p - c) * n).sum(axis=1)]
+        w = np.where(np.abs(r) <= k, 1.0, k / np.maximum(np.abs(r), 1e-12))
+        delta = np.linalg.solve(jac.T @ (jac * w[:, None]) + 1e-9 * np.eye(7), -jac.T @ (w * r))
+        rot = Rotation.from_rotvec(delta[:3]).as_matrix() * (1 + delta[6])
+        m = np.eye(4)
+        m[:3, :3] = rot
+        m[:3, 3] = c + delta[3:6] - rot @ c
+        t = m @ t
+        if np.abs(delta).max() < 1e-7:
+            break
+    return t
+
+
+def icp(t: np.ndarray, marble_raw: np.ndarray, tree: cKDTree, target: o3d.geometry.PointCloud, scale_round: bool,
+        gate_m: float = ICP_GATE_M) -> np.ndarray:
+    crit = o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=60)
+    reg = o3d.pipelines.registration
+
+    def near(t_now):
+        d, _ = tree.query(splats.apply(t_now, marble_raw), distance_upper_bound=gate_m, workers=-1)
+        return np.isfinite(d)
+
+    def src(t_now):
+        return cloud(splats.apply(t_now, marble_raw)[near(t_now)])
+
+    if scale_round:
+        est = reg.TransformationEstimationPointToPoint(with_scaling=True)
+        t = reg.registration_icp(src(t), target, ROUNDS_M[0], np.eye(4), est, crit).transformation @ t
+    for dist in ROUNDS_M:
+        est = reg.TransformationEstimationPointToPlane(reg.HuberLoss(k=dist / 3))
+        t = reg.registration_icp(src(t), target, dist, np.eye(4), est, crit).transformation @ t
+    if scale_round:
+        sel = cloud(marble_raw[near(t)] * 1.0)
+        t = similarity_round(t, np.asarray(sel.points), np.asarray(target.points), np.asarray(target.normals), ROUNDS_M[-1])
+    return t
+
+
+def gravity_deg(t: np.ndarray, flip: bool) -> float:
+    """Angle between where a pose sends the raw axis its start called down and the world's down (-y)."""
+    v = t[:3, :3] @ raw_down(flip)
+    v = v / np.linalg.norm(v)
+    return float(np.degrees(np.arccos(np.clip(-v[1], -1.0, 1.0))))
+
+
+def pose_angle(a: np.ndarray, b: np.ndarray) -> float:
+    """Degrees between two poses' orientations; infinite when one is mirrored and the other not."""
+    if splats.parity(a) != splats.parity(b):
+        return float("inf")
+    ra, rb = splats.split(a)[1], splats.split(b)[1]
+    return float(np.degrees(Rotation.from_matrix(ra.T @ rb).magnitude()))
+
+
+def sample(n: int, k: int, seed: int = 0) -> np.ndarray:
+    return np.arange(n) if n <= k else np.sort(np.random.default_rng(seed).choice(n, k, replace=False))
+
+
+def photo_pick(pick: np.ndarray, opacity: np.ndarray | None, n: int = PHOTO_SPLATS, seed: int = 2) -> np.ndarray:
+    """A seeded random share of the sample, opaque splats only: Marble writes its splats in no spatial order we
+    know, so the first n would be one part of the world."""
+    keep = pick if opacity is None else pick[opacity[pick] >= PHOTO_MIN_OPACITY]
+    return keep if len(keep) <= n else np.sort(np.random.default_rng(seed).choice(keep, n, replace=False))
+
+
+def search(measured_world: np.ndarray, marble_raw: np.ndarray, world_from_colmap: np.ndarray, pano_c: np.ndarray,
+           r_cam: np.ndarray, msf: float, views: list | None = None, marble_lum: np.ndarray | None = None,
+           marble_opacity: np.ndarray | None = None, start: tuple | None = None, log=print) -> dict:
+    """Score every start, run ICP from the promising ones, choose, and compute the frozen residual once."""
+    t_start = time.time()
+    tree = cKDTree(measured_world)
+    target = cloud(measured_world, normals=True)
+    pick = sample(len(marble_raw), SAMPLE_SPLATS)
+    raw_s = marble_raw[pick]
+    meas_s = measured_world[sample(len(measured_world), SAMPLE_SPLATS, seed=1)]
+    photo_ok = bool(views) and marble_lum is not None
+    if photo_ok:
+        keep = photo_pick(pick, marble_opacity)
+        raw_p, lum_p = marble_raw[keep], marble_lum[keep]
+
+    def photometric(t):
+        return photo.score(views, splats.apply(t, raw_p), lum_p)["score"] if photo_ok else None
+
+    table = []
+    for h in HYPOTHESES if start is None else HYPOTHESES + ([start] if start not in HYPOTHESES else []):
+        t0 = initial(world_from_colmap, pano_c, r_cam, msf, hypothesis(*h))
+        table.append({"yawDeg": h[0], "mirror": h[1], "flip": h[2], "rawDown": "-y" if h[2] else "+y",
+                      "before": residual(t0, raw_s, tree)["medianCm"], "photoBefore": photometric(t0), "t0": t0})
+    far = lambda v: np.inf if v is None else v  # noqa: E731
+    key = lambda e: (e["yawDeg"], e["mirror"], e["flip"])  # noqa: E731
+    if start is not None:
+        wanted = {tuple(start)}
+    else:
+        by_geo = sorted(table, key=lambda e: far(e["before"]))[:KEEP_GEOMETRIC]
+        by_photo = sorted((e for e in table if e["photoBefore"] is not None), key=lambda e: -e["photoBefore"])[:KEEP_PHOTOMETRIC]
+        wanted = {PRIOR} | {key(e) for e in by_geo + by_photo}
+    tried = [e for e in table if key(e) in wanted]
+    for e in tried:
+        e["t"] = icp(e["t0"], raw_s, tree, target, scale_round=True)
+        e["after"] = residual(e["t"], raw_s, tree)["medianCm"]
+        tw = two_way(e["t"], raw_s, tree, meas_s)
+        e["twoWayCm"] = round(tw * 100, 3) if np.isfinite(tw) else None
+        e["gravityDeg"] = round(gravity_deg(e["t"], e["flip"]), 2)
+        e["photo"] = photometric(e["t"])
+    upright = [e for e in tried if e["gravityDeg"] <= GRAVITY_MAX_DEG] or tried
+    best_geo = min(far(e["twoWayCm"]) for e in upright)
+    near_ties = [e for e in upright if far(e["twoWayCm"]) <= GEOMETRIC_TIE * best_geo] or upright
+    if photo_ok and any(e["photo"] is not None for e in near_ties):
+        chosen = max(near_ties, key=lambda e: -np.inf if e["photo"] is None else e["photo"])
+    else:
+        chosen = min(near_ties, key=lambda e: far(e["twoWayCm"]))
+    t = chosen["t"]
+
+    # photometric runner-up: the best-looking pose that is a different answer from the chosen one
+    rivals = []
+    for e in table:
+        if e is chosen:
+            continue
+        pose = e.get("t", e["t0"])
+        if pose_angle(pose, t) < SAME_POSE_DEG:
+            continue
+        s = [x for x in (e["photoBefore"], e.get("photo")) if x is not None]
+        if s:
+            rivals.append((max(s), e))
+    runner = max(rivals, key=lambda r: r[0]) if rivals else None
+    if not photo_ok:
+        photometric_out = {"score": None, "runnerUp": None, "reason": "no pano views on disk or no colours in the Marble file"}
+    elif chosen.get("photo") is None:
+        photometric_out = {"score": None, "runnerUp": None, "reason": "the pano views do not see enough of the chosen pose"}
+    else:
+        photometric_out = {"score": chosen["photo"],
+                           "runnerUp": None if runner is None else {"yawDeg": runner[1]["yawDeg"], "mirror": runner[1]["mirror"],
+                                                                     "flip": runner[1]["flip"], "score": runner[0]},
+                           "views": len(views)}
+
+    s_init, s_final = splats.split(chosen["t0"])[0], splats.split(t)[0]
+    full = residual(t, marble_raw, tree)
+    log(f"alignment search: {len(table)} starts, {len(tried)} through ICP, {time.time() - t_start:.0f} s")
+    return {
+        "world_from_marble": t.tolist(), "initial": chosen["t0"].tolist(),
+        "hypothesis": {"yawDeg": chosen["yawDeg"], "mirror": chosen["mirror"], "flip": chosen["flip"], "rawDown": chosen["rawDown"]},
+        "hypotheses": [{k: e[k] for k in ("yawDeg", "mirror", "flip", "rawDown", "before", "photoBefore", "after", "twoWayCm",
+                                          "gravityDeg", "photo") if k in e} for e in table],
+        "chosen": {"gravityDeg": chosen["gravityDeg"], "rawDown": chosen["rawDown"]},
+        "photometric": photometric_out,
+        "scale": {"metricFactor": msf, "metresPerRawUnit": s_final, "ratioToMetricFactor": round(s_final / s_init, 5)},
+        "residual": full,
+        "marbleSplats": int(len(marble_raw)),
+        "sampleSplats": int(len(raw_s)),
+        "seconds": round(time.time() - t_start, 1),
+    }
+
+
+def gate(r: dict, accept_by_eye: str | None = None) -> dict:
+    """Gate A's verdict. The frozen residual decides alone whether the fit is close; the added checks decide
+    whether it is the right fit, and only they can be overruled by a person who has looked."""
+    res = r["residual"]
+    reasons = []
+    residual_pass = res["medianCm"] is not None and res["medianCm"] < GATE_A_CM
+    if res["medianCm"] is None:
+        reasons.append("no Marble centre lies within 1 m of a measured centre: there is no residual to read")
+    elif not residual_pass:
+        reasons.append(f"residual median {res['medianCm']:.2f} cm is not under {GATE_A_CM:.0f} cm")
+    g = r["chosen"]
+    gravity = {"pass": g["gravityDeg"] <= GRAVITY_MAX_DEG, "angleDeg": g["gravityDeg"], "limitDeg": GRAVITY_MAX_DEG,
+               "rawDown": g["rawDown"]}
+    if not gravity["pass"]:
+        reasons.append(f"Marble's raw {g['rawDown']} (the start's down) lands {g['gravityDeg']:.0f} degrees from the "
+                       f"world's down (limit {GRAVITY_MAX_DEG:.0f}): the fit is tilted or upside down")
+    p = r["photometric"]
+    ph = {"score": p.get("score"), "runnerUp": p.get("runnerUp"), "minMargin": PHOTO_MARGIN}
+    if p.get("score") is None:
+        ph.update({"pass": False, "margin": None})
+        reasons.append(f"photometric check not possible: {p.get('reason', 'no score')}")
+    else:
+        margin = p["score"] - (p["runnerUp"]["score"] if p.get("runnerUp") else -1.0)
+        ph.update({"pass": margin >= PHOTO_MARGIN, "margin": round(margin, 4)})
+        if margin < PHOTO_MARGIN:
+            ru = p["runnerUp"]
+            reasons.append(f"photometric score {p['score']:.3f} is not clearly the best: "
+                           f"{label((ru['yawDeg'], ru['mirror'], ru['flip']))} scores {ru['score']:.3f} "
+                           f"(margin {margin:.3f}, needs {PHOTO_MARGIN})")
+    share = res["icpSet"] / max(r["marbleSplats"], 1)
+    icp_share = {"pass": share >= MIN_ICP_SHARE, "share": round(share, 4), "min": MIN_ICP_SHARE}
+    if not icp_share["pass"]:
+        reasons.append(f"the ICP set holds only {share:.0%} of Marble's splats (minimum share {MIN_ICP_SHARE:.0%}): "
+                       "the fit covers a corner of Marble's world")
+    ratio = r["scale"]["ratioToMetricFactor"]
+    lo, hi = METRIC_RATIO_RANGE
+    metric = {"pass": lo <= ratio <= hi, "ratio": ratio, "range": [round(lo, 4), hi]}
+    if not metric["pass"]:
+        reasons.append(f"ICP's scale is {ratio:.3f} x the metric factor's (allowed {lo:.2f} to {hi:.2f}): the metric "
+                       "factor is wrong, or ICP shrank or stretched the world to fit part of it")
+    automatic = gravity["pass"] and ph["pass"] and icp_share["pass"] and metric["pass"]
+    return {"thresholdCm": GATE_A_CM, "residualPass": residual_pass,
+            "pass": bool(residual_pass and (automatic or bool(accept_by_eye))),
+            "gravity": gravity, "photometric": ph, "icpShare": icp_share, "metricRatio": metric,
+            "acceptedByEye": accept_by_eye or None, "reasons": reasons}
+
+
+def contact_sheet(measured_world: np.ndarray, marble_raw: np.ndarray, t0: np.ndarray, t: np.ndarray, out: Path,
+                  door_centre=None, pano=None) -> Path:
+    m = plots.thin(measured_world, 60000)
+    raw = plots.thin(marble_raw, 60000, seed=1)
+    before, after = splats.apply(t0, raw), splats.apply(t, raw)
+    lo, hi = np.percentile(m, 1, axis=0) - 1.0, np.percentile(m, 99, axis=0) + 1.0
+    img = Image.new("RGB", (1280, 1030), "white")
+    draw = ImageDraw.Draw(img)
+    font = ImageFont.load_default(size=16)
+    titles = ((0, 0, "before ICP, from above: x right, z down the page; 0.3 to 1.5 m above the floor"),
+              (640, 0, "after ICP, from above (same slice)"),
+              (0, 500, "before ICP, from the side: x right, y up (looking along -z)"),
+              (640, 500, "after ICP, from the side"))
+    for (x0, y0, title), cloud_k, top in zip(titles, (before, after, before, after), (True, True, False, False)):
+        box = (x0 + 4, y0 + 26, x0 + 636, y0 + 496)
+        draw.rectangle(box, outline=(120, 120, 120))
+        draw.text((x0 + 6, y0 + 4), title, fill=(20, 20, 20), font=font)
+        if top:
+            panel = plots.Panel(box, lo[[0, 2]], hi[[0, 2]], top=True)
+            # Marble first, so the measured points on top stay readable where the two agree
+            panel.points(draw, plots.band(cloud_k)[:, [0, 2]], (214, 110, 30))
+            panel.points(draw, plots.band(m)[:, [0, 2]], (60, 60, 60))
+            if door_centre is not None and pano is not None:
+                panel.arrow(draw, np.asarray(pano)[[0, 2]], np.asarray(door_centre)[[0, 2]], "door", font)
+        else:
+            panel = plots.Panel(box, lo[[0, 1]], hi[[0, 1]], top=False)
+            panel.points(draw, cloud_k[:, [0, 1]], (214, 110, 30))
+            panel.points(draw, m[:, [0, 1]], (60, 60, 60))
+        panel.axes(draw, font)
+    draw.text((8, 1006), "measured grey, Marble orange", fill=(0, 0, 0), font=font)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    img.save(out)
+    return out
+
+
+def write_json(path: Path, doc: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(doc, indent=2, allow_nan=False) + "\n")
+
+
+def print_table(r: dict) -> None:
+    print("start                          before  photo0 |   after  two-way  down   photo")
+    for e in r["hypotheses"]:
+        if "after" not in e and (e["photoBefore"] or 0) < 0.3 and (e["before"] is None or e["before"] > 20):
+            continue
+        num = lambda v, f: "   -  " if v is None else format(v, f)  # noqa: E731
+        line = f"{label((e['yawDeg'], e['mirror'], e['flip'])):30s} {num(e['before'], '6.2f')}  {num(e['photoBefore'], '6.3f')}"
+        if "after" in e:
+            line += f" | {num(e['after'], '6.2f')}  {num(e['twoWayCm'], '7.2f')}  {e['gravityDeg']:4.0f}  {num(e['photo'], '.3f')}"
+        print(line)
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--work", type=Path, default=Path("work"))
+    ap.add_argument("--world", required=True, help="the Marble world id (work/marble/<id>.json, marble_<id>.ply)")
+    ap.add_argument("--start", default=None, help="YAW[,mirror][,flip]: skip the search and start from this, e.g. 0 or 172,mirror")
+    ap.add_argument("--accept-by-eye", default=None, metavar="REASON",
+                    help="a person has looked at contact.png and the table and overrules the added checks (never the residual)")
+    ap.add_argument("--mode", choices=["pano", "doorway"], default="pano")
+    ap.add_argument("--notes", type=Path, default=Path("../capture/NOTES.md"), help="doorway mode: the Marble corner picks")
+    args = ap.parse_args(argv)
+    if args.mode == "doorway":
+        import doorway
+        return doorway.main(args)
+    scale = json.loads((args.work / "scale.json").read_text())
+    w_from_c = np.array(scale["world_from_colmap"])
+    model = read_model(args.work / json.loads((args.work / "colmap_report.json").read_text())["model_dir"])
+    pano_c, r_cam = pano_pose(model)
+    world = json.loads((args.work / "marble" / f"{args.world}.json").read_text())
+    msf, ground = metric_factor(world)
+    measured = splats.apply(w_from_c, splats.centres(splats.read(args.work / "splat" / "measured.ply")))
+    marble = splats.read(args.work / "marble" / f"marble_{args.world}.ply")
+    marble_raw = splats.centres(marble)
+    colour = splats.base_colour(marble)
+    views = photo.pano_views(model, args.work / "images", w_from_c)
+    print(f"photometric check: {len(views)} pano view(s) on disk in {args.work / 'images'}")
+    r = search(measured, marble_raw, w_from_c, pano_c, r_cam, msf, views,
+               None if colour is None else photo.luminance(colour),
+               splats.opacity(marble) if "opacity" in marble["vertex"].data.dtype.names else None,
+               parse_start(args.start) if args.start else None)
+    out = args.work / "align" / args.world
+    sheet = contact_sheet(measured, marble_raw, np.array(r["initial"]), np.array(r["world_from_marble"]), out / "contact.png",
+                          scale["door"]["centre"], scale["pano"])
+    g = gate(r, args.accept_by_eye)
+    r.update({"worldId": args.world, "mode": "pano", "model": world.get("model"), "groundPlaneOffset": ground,
+              "panoHeightM": float(scale["pano"][1]), "gateA": g, "note": NOTE, "contactSheet": str(sheet)})
+    write_json(out / "align.json", r)
+    print_table(r)
+    h, res = r["hypothesis"], r["residual"]
+    print(f"chosen start: {label((h['yawDeg'], h['mirror'], h['flip']))} (raw {h['rawDown']} taken as down); scale "
+          f"{r['scale']['metresPerRawUnit']:.4f} m per raw unit, {r['scale']['ratioToMetricFactor']:.3f} x the metric factor {msf}")
+    if h["mirror"]:
+        print("NOTE: the chosen start is mirrored; export.py bakes the mirror into the files so the viewer's matrix stays proper")
+    print(f"ground plane offset (as Marble gives it): {ground}; pano height measured {scale['pano'][1]:.2f} m")
+    if res["medianCm"] is None:
+        print("residual: none (no Marble centre within 1 m of a measured centre)")
+    else:
+        print(f"residual: median {res['medianCm']:.2f} cm, 90th percentile {res['p90Cm']:.2f} cm, over {res['icpSet']} "
+              f"Marble centres within 1 m of a measured centre ({g['icpShare']['share']:.0%} of {r['marbleSplats']})")
+    p = g["photometric"]
+    if p["score"] is not None:
+        ru = p["runnerUp"]
+        print(f"photometric: {p['score']:.3f}; next best distinct pose "
+              + (f"{label((ru['yawDeg'], ru['mirror'], ru['flip']))} {ru['score']:.3f}" if ru else "none")
+              + f"; margin {p['margin']:.3f} (needs {PHOTO_MARGIN})")
+    print(f"gravity: raw {h['rawDown']} lands {g['gravity']['angleDeg']:.1f} degrees from the world's down (limit {GRAVITY_MAX_DEG:.0f})")
+    for reason in g["reasons"]:
+        print(f"  - {reason}")
+    if g["acceptedByEye"]:
+        print(f"accepted by eye: {g['acceptedByEye']}")
+    print(f"Gate A: {'PASS' if g['pass'] else 'FAIL'} (median under {GATE_A_CM:.0f} cm and the added checks). {NOTE}")
+    print(f"written: {out / 'align.json'}, {sheet}")
+    return 0 if g["pass"] else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

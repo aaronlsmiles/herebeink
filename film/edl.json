@@ -1,0 +1,71 @@
+{
+ "_doc": [
+  "The edit list for web/tools/film-cut.mjs. Segments play in order; a segment marked optional is skipped when its source file is absent.",
+  "frames: a frame set dumped by web/tools/film-dump.mjs into film/frames/<aspect>-<set>/ (from inclusive, to exclusive, at 24 fps).",
+  "still and seq: page shots from web/tools/film-shots.mjs in film/frames/stills/<aspect>/ (a PNG, or a folder of numbered PNGs).",
+  "wipe: two frame sets of one camera path (ink and ?ink=off); the divider is the share of the width showing b, moving from 'from' to 'to' between t0 and t1.",
+  "Captions: t0 and t1 in seconds from the segment's start; 'label' is the small line above the words. Every claim is from LOG.md or THESIS.md.",
+  "No sound: the film has no audio track until Aaron's own music (film/README.md)."
+ ],
+ "fps": 24,
+ "title": "Here Be Ink",
+ "url": "herebeink.studionephele.com",
+ "poster": {"set": "outro", "frame": 240},
+ "loop": {"set": "walk", "from": 120, "to": 312},
+ "aspects": {
+  "16x9": {"size": [1920, 1080], "frame": [1920, 1080], "at": [0, 0], "page": [1920, 1080], "scale": 1},
+  "9x16": {"size": [1080, 1920], "frame": [1080, 1350], "at": [0, 220], "page": [540, 675], "scale": 2}
+ },
+ "shots": {
+  "first-screen": {"query": "", "intro": true, "settleMs": 3500},
+  "map": {"query": "map=1", "intro": false, "walk": {"shot": "walk", "from": 0, "to": 685, "every": 4}}
+ },
+ "segments": [
+  {"id": "hook", "src": {"frames": "hook", "from": 0, "to": 145}, "fadeIn": 0.6, "captions": [
+    {"t0": 0.5, "t1": 2.9, "label": "Here Be Ink", "text": "A pen line crosses the floor of a real room."},
+    {"t0": 3.1, "t1": 6.0, "label": "Here Be Ink", "text": "On this side a camera measured. Past it, a model imagined."}
+  ]},
+  {"id": "first-screen", "src": {"still": "first-screen", "dur": 4.5}, "captions": [
+    {"t0": 0.4, "t1": 4.3, "label": "The page", "text": "The first screen states the rule. It doesn't say where the line falls.", "side": "right"}
+  ]},
+  {"id": "walk", "src": {"frames": "walk", "from": 0, "to": 192}, "captions": [
+    {"t0": 0.3, "t1": 3.9, "label": "Measured", "text": "My room, filmed in three slow passes with a 360 camera."},
+    {"t0": 4.1, "t1": 7.9, "label": "Measured", "text": "Where it looks like a photograph, the camera saw it."}
+  ]},
+  {"id": "step-over", "src": {"frames": "walk", "from": 192, "to": 336}, "captions": [
+    {"t0": 0.3, "t1": 5.9, "label": "The coastline", "text": "At the door frame the measuring stops. Past the line, it is ink."}
+  ]},
+  {"id": "hallway", "src": {"frames": "walk", "from": 336, "to": 420}, "captions": [
+    {"t0": 0.2, "t1": 3.5, "label": "Imagined", "text": "World Labs' Marble built this hallway from one 360 still."}
+  ]},
+  {"id": "look-back", "src": {"frames": "walk", "from": 420, "to": 685}, "captions": [
+    {"t0": 5.0, "t1": 10.9, "label": "Looking back", "text": "Turn round, and the room is still a photograph."}
+  ]},
+  {"id": "headset", "optional": true, "src": {"video": "film/takes/headset.mp4", "maxDur": 8}, "captions": [
+    {"t0": 0.3, "t1": 7.7, "label": "In a headset", "text": "The same walk on a Quest."}
+  ]},
+  {"id": "map", "src": {"seq": "map"}, "captions": [
+    {"t0": 0.4, "t1": 6.8, "label": "The map", "text": "From above: photograph, drawing, and grey where nothing was scanned."}
+  ]},
+  {"id": "switch", "src": {"wipe": {"a": "switch", "b": "switch-filter", "from": 0, "to": 385, "moves": [{"t0": 3.0, "t1": 4.6, "from": 0, "to": 1}, {"t0": 10.0, "t1": 11.6, "from": 1, "to": 0}]}}, "captions": [
+    {"t0": 0.3, "t1": 2.9, "label": "The switch", "text": "The same view near the door, in ink."},
+    {"t0": 3.1, "t1": 5.0, "label": "The switch", "text": "Now as a plain filter."},
+    {"t0": 5.2, "t1": 9.8, "label": "The finding", "text": "The filter shows what Marble made: a door at the end, a picture, a skirting board."},
+    {"t0": 11.0, "t1": 15.8, "label": "The finding", "text": "The ink keeps none of it, just one even cross-hatch. It reads as a filter, not a drawing."}
+  ]},
+  {"id": "suggests", "src": {"frames": "outro", "from": 0, "to": 241}, "captions": [
+    {"t0": 0.3, "t1": 4.8, "label": "What it suggests", "text": "Still, the border holds. A caption won't survive a screenshot; a way of drawing can."},
+    {"t0": 5.0, "t1": 9.8, "label": "What it suggests", "text": "One test, not a proof: a made-up world can carry its provenance in how it is drawn."}
+  ]},
+  {"id": "end", "src": {"card": "end", "dur": 6.0}, "fadeOut": 0.8}
+ ],
+ "end": {
+  "title": "Here Be Ink",
+  "sub": "photograph where the camera measured, ink where a model imagined",
+  "credits": [
+   "Imagined half generated with World Labs Marble (marble-1.1-plus) through the World API; drawn in ink by the page.",
+   "Measured half: a 360 camera, COLMAP and LichtFeld Studio. Rendered with Spark.",
+   "Studio Nephele"
+  ]
+ }
+}

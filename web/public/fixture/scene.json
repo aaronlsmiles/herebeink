@@ -1,0 +1,1160 @@
+{
+ "schemaVersion": 1,
+ "schemaMinor": 1,
+ "generatedAt": "2026-11-19T00:00:00Z",
+ "units": "m",
+ "frame": {
+  "up": [
+   0.0,
+   1.0,
+   0.0
+  ],
+  "floorY": 0.0,
+  "longAxis": [
+   1.0,
+   0.0,
+   0.0
+  ]
+ },
+ "splats": {
+  "measured": {
+   "url": "measured.spz",
+   "sha256": "4e8a3060a31d6199c11b16b5e1b2772378b3ac92d817b6eac2290555041440a6",
+   "bytes": 1677133,
+   "splats": 185121,
+   "shDegree": 0,
+   "provenance": 0,
+   "matrix": [
+    0.283433619,
+    -3.2619e-05,
+    -0.237829045,
+    0.0,
+    -0.008201457,
+    -0.369777587,
+    -0.009723399,
+    0.0,
+    -0.237687593,
+    0.012720351,
+    -0.283266787,
+    0.0,
+    0.300130416,
+    1.099253556,
+    -0.399768441,
+    1.0
+   ]
+  },
+  "measuredPreview": {
+   "url": "measured-preview.spz",
+   "sha256": "af5284ff0fe88e2f5bbb44817e7dfb34687cb8442bf73fafc62d64a1a41fc22f",
+   "bytes": 373194,
+   "splats": 40000,
+   "shDegree": 0,
+   "provenance": 0,
+   "matrix": [
+    0.283433619,
+    -3.2619e-05,
+    -0.237829045,
+    0.0,
+    -0.008201457,
+    -0.369777587,
+    -0.009723399,
+    0.0,
+    -0.237687593,
+    0.012720351,
+    -0.283266787,
+    0.0,
+    0.300130416,
+    1.099253556,
+    -0.399768441,
+    1.0
+   ]
+  },
+  "overlap": {
+   "url": "overlap.spz",
+   "sha256": "b9da3a036479acf4c5e1f74a9dabd01bc6550bbbc400e3fb3766c2c38ccf7810",
+   "bytes": 49425,
+   "splats": 5779,
+   "shDegree": 0,
+   "provenance": 0.5,
+   "matrix": [
+    0.207388327,
+    0.000949971,
+    1.687403541,
+    0.0,
+    0.000490869,
+    -1.70010014,
+    0.000896789,
+    0.0,
+    1.687403737,
+    0.000377807,
+    -0.207388564,
+    0.0,
+    0.03005797,
+    1.579406388,
+    0.009799612,
+    1.0
+   ]
+  },
+  "imagined": {
+   "url": "imagined.spz",
+   "sha256": "e6b1baa4b2230f6c80d5721ba05705f69b9fb19e3972b898710c6085e8ca9477",
+   "bytes": 188306,
+   "splats": 22426,
+   "shDegree": 0,
+   "provenance": 1,
+   "matrix": [
+    0.207388327,
+    0.000949971,
+    1.687403541,
+    0.0,
+    0.000490869,
+    -1.70010014,
+    0.000896789,
+    0.0,
+    1.687403737,
+    0.000377807,
+    -0.207388564,
+    0.0,
+    0.03005797,
+    1.579406388,
+    0.009799612,
+    1.0
+   ]
+  }
+ },
+ "radiiM": {
+  "covered": 0.15,
+  "overlap": 0.5
+ },
+ "floor": {
+  "normal": [
+   0.0,
+   1.0,
+   0.0
+  ],
+  "y": 0.0
+ },
+ "walkable": {
+  "polygons": [
+   [
+    [
+     2.05,
+     -1.7
+    ],
+    [
+     2.1,
+     -1.65
+    ],
+    [
+     2.1,
+     -1.55
+    ],
+    [
+     2.1,
+     -1.45
+    ],
+    [
+     2.1,
+     -1.35
+    ],
+    [
+     2.1,
+     -1.25
+    ],
+    [
+     2.1,
+     -1.15
+    ],
+    [
+     2.1,
+     -1.05
+    ],
+    [
+     2.1,
+     -0.95
+    ],
+    [
+     2.1,
+     -0.85
+    ],
+    [
+     2.1,
+     -0.75
+    ],
+    [
+     2.1,
+     -0.65
+    ],
+    [
+     2.15,
+     -0.6
+    ],
+    [
+     2.25,
+     -0.6
+    ],
+    [
+     2.35,
+     -0.6
+    ],
+    [
+     2.45,
+     -0.6
+    ],
+    [
+     2.55,
+     -0.6
+    ],
+    [
+     2.65,
+     -0.6
+    ],
+    [
+     2.75,
+     -0.6
+    ],
+    [
+     2.85,
+     -0.6
+    ],
+    [
+     2.95,
+     -0.6
+    ],
+    [
+     3.05,
+     -0.6
+    ],
+    [
+     3.15,
+     -0.6
+    ],
+    [
+     3.2,
+     -0.55
+    ],
+    [
+     3.2,
+     -0.45
+    ],
+    [
+     3.2,
+     -0.35
+    ],
+    [
+     3.2,
+     -0.25
+    ],
+    [
+     3.2,
+     -0.15
+    ],
+    [
+     3.2,
+     -0.05
+    ],
+    [
+     3.2,
+     0.05
+    ],
+    [
+     3.2,
+     0.15
+    ],
+    [
+     3.2,
+     0.25
+    ],
+    [
+     3.2,
+     0.35
+    ],
+    [
+     3.2,
+     0.45
+    ],
+    [
+     3.2,
+     0.55
+    ],
+    [
+     3.2,
+     0.65
+    ],
+    [
+     3.2,
+     0.75
+    ],
+    [
+     3.2,
+     0.85
+    ],
+    [
+     3.2,
+     0.95
+    ],
+    [
+     3.2,
+     1.05
+    ],
+    [
+     3.2,
+     1.15
+    ],
+    [
+     3.2,
+     1.25
+    ],
+    [
+     3.2,
+     1.35
+    ],
+    [
+     3.2,
+     1.45
+    ],
+    [
+     3.2,
+     1.55
+    ],
+    [
+     3.2,
+     1.65
+    ],
+    [
+     3.2,
+     1.75
+    ],
+    [
+     3.2,
+     1.85
+    ],
+    [
+     3.2,
+     1.95
+    ],
+    [
+     3.2,
+     2.05
+    ],
+    [
+     3.2,
+     2.15
+    ],
+    [
+     3.2,
+     2.25
+    ],
+    [
+     3.2,
+     2.35
+    ],
+    [
+     3.2,
+     2.45
+    ],
+    [
+     3.2,
+     2.55
+    ],
+    [
+     3.15,
+     2.6
+    ],
+    [
+     3.05,
+     2.6
+    ],
+    [
+     2.95,
+     2.6
+    ],
+    [
+     2.85,
+     2.6
+    ],
+    [
+     2.75,
+     2.6
+    ],
+    [
+     2.65,
+     2.6
+    ],
+    [
+     2.55,
+     2.6
+    ],
+    [
+     2.45,
+     2.6
+    ],
+    [
+     2.35,
+     2.6
+    ],
+    [
+     2.25,
+     2.6
+    ],
+    [
+     2.15,
+     2.6
+    ],
+    [
+     2.1,
+     2.55
+    ],
+    [
+     2.05,
+     2.5
+    ],
+    [
+     2.0,
+     2.45
+    ],
+    [
+     2.0,
+     2.35
+    ],
+    [
+     2.0,
+     2.25
+    ],
+    [
+     2.0,
+     2.15
+    ],
+    [
+     2.0,
+     2.05
+    ],
+    [
+     2.0,
+     1.95
+    ],
+    [
+     2.0,
+     1.85
+    ],
+    [
+     2.0,
+     1.75
+    ],
+    [
+     1.95,
+     1.7
+    ],
+    [
+     1.85,
+     1.7
+    ],
+    [
+     1.75,
+     1.7
+    ],
+    [
+     1.65,
+     1.7
+    ],
+    [
+     1.55,
+     1.7
+    ],
+    [
+     1.45,
+     1.7
+    ],
+    [
+     1.35,
+     1.7
+    ],
+    [
+     1.25,
+     1.7
+    ],
+    [
+     1.15,
+     1.7
+    ],
+    [
+     1.05,
+     1.7
+    ],
+    [
+     0.95,
+     1.7
+    ],
+    [
+     0.85,
+     1.7
+    ],
+    [
+     0.75,
+     1.7
+    ],
+    [
+     0.65,
+     1.7
+    ],
+    [
+     0.55,
+     1.7
+    ],
+    [
+     0.45,
+     1.7
+    ],
+    [
+     0.35,
+     1.7
+    ],
+    [
+     0.25,
+     1.7
+    ],
+    [
+     0.15,
+     1.7
+    ],
+    [
+     0.05,
+     1.7
+    ],
+    [
+     -0.05,
+     1.7
+    ],
+    [
+     -0.15,
+     1.7
+    ],
+    [
+     -0.25,
+     1.7
+    ],
+    [
+     -0.35,
+     1.7
+    ],
+    [
+     -0.45,
+     1.7
+    ],
+    [
+     -0.55,
+     1.7
+    ],
+    [
+     -0.65,
+     1.7
+    ],
+    [
+     -0.75,
+     1.7
+    ],
+    [
+     -0.85,
+     1.7
+    ],
+    [
+     -0.95,
+     1.7
+    ],
+    [
+     -1.05,
+     1.7
+    ],
+    [
+     -1.15,
+     1.7
+    ],
+    [
+     -1.25,
+     1.7
+    ],
+    [
+     -1.35,
+     1.7
+    ],
+    [
+     -1.45,
+     1.7
+    ],
+    [
+     -1.55,
+     1.7
+    ],
+    [
+     -1.65,
+     1.7
+    ],
+    [
+     -1.75,
+     1.7
+    ],
+    [
+     -1.85,
+     1.7
+    ],
+    [
+     -1.95,
+     1.7
+    ],
+    [
+     -2.05,
+     1.7
+    ],
+    [
+     -2.1,
+     1.65
+    ],
+    [
+     -2.1,
+     1.55
+    ],
+    [
+     -2.1,
+     1.45
+    ],
+    [
+     -2.1,
+     1.35
+    ],
+    [
+     -2.1,
+     1.25
+    ],
+    [
+     -2.1,
+     1.15
+    ],
+    [
+     -2.1,
+     1.05
+    ],
+    [
+     -2.1,
+     0.95
+    ],
+    [
+     -2.1,
+     0.85
+    ],
+    [
+     -2.1,
+     0.75
+    ],
+    [
+     -2.1,
+     0.65
+    ],
+    [
+     -2.1,
+     0.55
+    ],
+    [
+     -2.1,
+     0.45
+    ],
+    [
+     -2.1,
+     0.35
+    ],
+    [
+     -2.1,
+     0.25
+    ],
+    [
+     -2.1,
+     0.15
+    ],
+    [
+     -2.1,
+     0.05
+    ],
+    [
+     -2.1,
+     -0.05
+    ],
+    [
+     -2.1,
+     -0.15
+    ],
+    [
+     -2.1,
+     -0.25
+    ],
+    [
+     -2.1,
+     -0.35
+    ],
+    [
+     -2.1,
+     -0.45
+    ],
+    [
+     -2.1,
+     -0.55
+    ],
+    [
+     -2.1,
+     -0.65
+    ],
+    [
+     -2.1,
+     -0.75
+    ],
+    [
+     -2.1,
+     -0.85
+    ],
+    [
+     -2.1,
+     -0.95
+    ],
+    [
+     -2.1,
+     -1.05
+    ],
+    [
+     -2.1,
+     -1.15
+    ],
+    [
+     -2.1,
+     -1.25
+    ],
+    [
+     -2.1,
+     -1.35
+    ],
+    [
+     -2.1,
+     -1.45
+    ],
+    [
+     -2.1,
+     -1.55
+    ],
+    [
+     -2.1,
+     -1.65
+    ],
+    [
+     -2.05,
+     -1.7
+    ],
+    [
+     -1.95,
+     -1.7
+    ],
+    [
+     -1.85,
+     -1.7
+    ],
+    [
+     -1.75,
+     -1.7
+    ],
+    [
+     -1.65,
+     -1.7
+    ],
+    [
+     -1.55,
+     -1.7
+    ],
+    [
+     -1.45,
+     -1.7
+    ],
+    [
+     -1.35,
+     -1.7
+    ],
+    [
+     -1.25,
+     -1.7
+    ],
+    [
+     -1.15,
+     -1.7
+    ],
+    [
+     -1.05,
+     -1.7
+    ],
+    [
+     -0.95,
+     -1.7
+    ],
+    [
+     -0.85,
+     -1.7
+    ],
+    [
+     -0.75,
+     -1.7
+    ],
+    [
+     -0.65,
+     -1.7
+    ],
+    [
+     -0.55,
+     -1.7
+    ],
+    [
+     -0.45,
+     -1.7
+    ],
+    [
+     -0.35,
+     -1.7
+    ],
+    [
+     -0.25,
+     -1.7
+    ],
+    [
+     -0.15,
+     -1.7
+    ],
+    [
+     -0.05,
+     -1.7
+    ],
+    [
+     0.05,
+     -1.7
+    ],
+    [
+     0.15,
+     -1.7
+    ],
+    [
+     0.25,
+     -1.7
+    ],
+    [
+     0.35,
+     -1.7
+    ],
+    [
+     0.45,
+     -1.7
+    ],
+    [
+     0.55,
+     -1.7
+    ],
+    [
+     0.65,
+     -1.7
+    ],
+    [
+     0.75,
+     -1.7
+    ],
+    [
+     0.85,
+     -1.7
+    ],
+    [
+     0.95,
+     -1.7
+    ],
+    [
+     1.05,
+     -1.7
+    ],
+    [
+     1.15,
+     -1.7
+    ],
+    [
+     1.25,
+     -1.7
+    ],
+    [
+     1.35,
+     -1.7
+    ],
+    [
+     1.45,
+     -1.7
+    ],
+    [
+     1.55,
+     -1.7
+    ],
+    [
+     1.65,
+     -1.7
+    ],
+    [
+     1.75,
+     -1.7
+    ],
+    [
+     1.85,
+     -1.7
+    ],
+    [
+     1.95,
+     -1.7
+    ]
+   ]
+  ],
+  "dilationM": 0.5
+ },
+ "eyeHeightM": 1.6,
+ "start": {
+  "position": [
+   0.0,
+   1.6,
+   0.0
+  ],
+  "yawDeg": -90.021,
+  "pitchDeg": 0.0
+ },
+ "door": {
+  "centre": [
+   2.0004,
+   -0.0001,
+   0.0007
+  ],
+  "widthM": 0.9,
+  "outward": [
+   1.0,
+   0.0,
+   0.000363
+  ]
+ },
+ "filmPath": [
+  {
+   "t": 0.0,
+   "position": [
+    0.0,
+    1.6,
+    0.0
+   ],
+   "yawDeg": -90.021,
+   "pitchDeg": 0.0
+  },
+  {
+   "t": 4.0,
+   "position": [
+    1.2,
+    1.6,
+    0.0
+   ],
+   "yawDeg": -90.021,
+   "pitchDeg": -8.0
+  },
+  {
+   "t": 8.0,
+   "position": [
+    3.2,
+    1.6,
+    0.001
+   ],
+   "yawDeg": -90.021,
+   "pitchDeg": -8.0
+  },
+  {
+   "t": 11.0,
+   "position": [
+    3.2,
+    1.6,
+    0.001
+   ],
+   "yawDeg": 89.979,
+   "pitchDeg": 0.0
+  },
+  {
+   "t": 15.0,
+   "position": [
+    1.2,
+    1.6,
+    0.0
+   ],
+   "yawDeg": 89.979,
+   "pitchDeg": 0.0
+  }
+ ],
+ "light": {
+  "direction": [
+   -0.819152,
+   -0.573576,
+   -0.000297
+  ]
+ },
+ "coastline": {
+  "url": "coastline.json",
+  "sha256": "43c3bed237c03fb435f679e54ed9eab4d5601e9d5a7558670abce7616700f2c7",
+  "bytes": 2114,
+  "stretches": 1,
+  "lengthM": 0.896
+ },
+ "counts": {
+  "measured": 185121,
+  "measuredPreview": 40000,
+  "marble": 143242,
+  "covered": 115037,
+  "overlap": 5779,
+  "imagined": 22426
+ },
+ "alignment": {
+  "medianCm": 1.487,
+  "p90Cm": 50.406,
+  "icpSet": 134313,
+  "gateAPass": true,
+  "note": "This is the fit of Marble's world to this room after alignment; it is not a measure of Marble's accuracy and is never shown beside another model's numbers.",
+  "mirrorBaked": false,
+  "mode": "pano",
+  "hypothesis": {
+   "yawDeg": 0,
+   "mirror": false,
+   "flip": false,
+   "rawDown": "+y"
+  },
+  "gravity": {
+   "pass": true,
+   "angleDeg": 0.03,
+   "limitDeg": 10.0,
+   "rawDown": "+y"
+  },
+  "photometric": {
+   "score": 0.9358,
+   "runnerUp": {
+    "yawDeg": 270,
+    "mirror": true,
+    "flip": false,
+    "score": 0.5957
+   },
+   "minMargin": 0.1,
+   "pass": true,
+   "margin": 0.3401
+  },
+  "icpShare": {
+   "pass": true,
+   "share": 0.9377,
+   "min": 0.3
+  },
+  "metricRatio": {
+   "pass": true,
+   "ratio": 0.9616,
+   "range": [
+    0.6667,
+    1.5
+   ]
+  }
+ },
+ "sources": {
+  "measured": "Gaussian splat trained with LichtFeld Studio on views cut from three 360-degree video passes, posed with COLMAP",
+  "imagined": {
+   "provider": "World Labs",
+   "model": "marble-1.1",
+   "worldId": "fixture"
+  }
+ },
+ "credit": "The imagined half was generated with Marble by World Labs, through its World API.",
+ "scaleEvidence": {
+  "checks": [
+   {
+    "name": "corner A reprojection RMS",
+    "value": 0.001,
+    "limit": "at most 3 px",
+    "pass": true,
+    "fix": "the clicks for A disagree: re-click A in every view, zoomed in, on the same physical corner"
+   },
+   {
+    "name": "corner A ray angle",
+    "value": 17.6,
+    "limit": "at least 5 degrees",
+    "pass": true,
+    "fix": "the views for A were taken from nearly one place: add clicks from a view across the room or another pass"
+   },
+   {
+    "name": "corner B reprojection RMS",
+    "value": 0.002,
+    "limit": "at most 3 px",
+    "pass": true,
+    "fix": "the clicks for B disagree: re-click B in every view, zoomed in, on the same physical corner"
+   },
+   {
+    "name": "corner B ray angle",
+    "value": 13.76,
+    "limit": "at least 5 degrees",
+    "pass": true,
+    "fix": "the views for B were taken from nearly one place: add clicks from a view across the room or another pass"
+   },
+   {
+    "name": "corner C reprojection RMS",
+    "value": 0.004,
+    "limit": "at most 3 px",
+    "pass": true,
+    "fix": "the clicks for C disagree: re-click C in every view, zoomed in, on the same physical corner"
+   },
+   {
+    "name": "corner C ray angle",
+    "value": 79.75,
+    "limit": "at least 5 degrees",
+    "pass": true,
+    "fix": "the views for C were taken from nearly one place: add clicks from a view across the room or another pass"
+   },
+   {
+    "name": "corner D reprojection RMS",
+    "value": 0.003,
+    "limit": "at most 3 px",
+    "pass": true,
+    "fix": "the clicks for D disagree: re-click D in every view, zoomed in, on the same physical corner"
+   },
+   {
+    "name": "corner D ray angle",
+    "value": 49.06,
+    "limit": "at least 5 degrees",
+    "pass": true,
+    "fix": "the views for D were taken from nearly one place: add clicks from a view across the room or another pass"
+   },
+   {
+    "name": "corner A height above the floor",
+    "value": -0.03,
+    "limit": "within 3 cm",
+    "pass": true,
+    "fix": "corner A is not on the fitted floor: re-click it where the jamb meets the floor; if the corners are right, the floor fit is wrong (a glossy floor's reflection?) and the floor numbers above say how"
+   },
+   {
+    "name": "corner B height above the floor",
+    "value": 0.01,
+    "limit": "within 3 cm",
+    "pass": true,
+    "fix": "corner B is not on the fitted floor: re-click it where the jamb meets the floor; if the corners are right, the floor fit is wrong (a glossy floor's reflection?) and the floor numbers above say how"
+   },
+   {
+    "name": "head pass camera height",
+    "value": 1.599,
+    "limit": "1.2 to 2 m",
+    "pass": true,
+    "fix": "the head pass's cameras come out 1.60 m above the fitted floor: the floor fit or the scale is wrong; look at the floor numbers and the door clicks"
+   },
+   {
+    "name": "hip pass camera height",
+    "value": 0.899,
+    "limit": "0.6 to 1.3 m",
+    "pass": true,
+    "fix": "the hip pass's cameras come out 0.90 m above the fitted floor: the floor fit or the scale is wrong; look at the floor numbers and the door clicks"
+   },
+   {
+    "name": "check length error",
+    "value": -0.002,
+    "limit": "within 1.5 %",
+    "pass": true,
+    "fix": "the scale and the check length disagree: re-measure the check length, re-click C and D, then the door"
+   }
+  ],
+  "warnings": []
+ }
+}

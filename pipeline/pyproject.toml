@@ -1,0 +1,18 @@
+[project]
+name = "herebeink-pipeline"
+version = "0.1.0"
+description = "Capture-to-splat pipeline for Here Be Ink"
+requires-python = ">=3.12,<3.13"
+dependencies = ["numpy", "scipy", "open3d", "plyfile", "pillow", "requests"]
+
+[dependency-groups]
+dev = ["pytest"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+markers = ["slow: runs ffmpeg and COLMAP end to end on a synthetic room (minutes)"]
+addopts = "-m 'not slow'"

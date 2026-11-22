@@ -1,0 +1,111 @@
+{
+ "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)",
+ "hud": {
+  "medianFrameMs": 16.69999999999999,
+  "p90FrameMs": 16.700000000000045,
+  "frames": 83,
+  "windowS": 1.3833,
+  "splatsRendered": 213326,
+  "splatsLoaded": 213326,
+  "lod": {
+   "enabled": true,
+   "splatBudget": 1500000,
+   "deviceClass": "desktop"
+  },
+  "dataScale": 1,
+  "dataPassPx": [
+   1440,
+   900
+  ],
+  "canvasPx": [
+   1440,
+   900
+  ],
+  "dpr": 1,
+  "ink": true,
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36"
+ },
+ "cost": {
+  "dpr2 back": {
+   "shadeOnlyMs": 10.43,
+   "withInkMs": 16,
+   "inkPassCostMs": 6.89,
+   "hud": {
+    "splatsRendered": 213326,
+    "splatsLoaded": 213326,
+    "dataScale": 0.5,
+    "dataPassPx": [
+     1440,
+     900
+    ],
+    "canvasPx": [
+     2880,
+     1800
+    ],
+    "lod": {
+     "enabled": true,
+     "splatBudget": 1500000,
+     "deviceClass": "desktop"
+    }
+   },
+   "dataPassSplats": {
+    "gbuf": 213326,
+    "flag": 213326
+   }
+  },
+  "dpr2 across": {
+   "shadeOnlyMs": 5.76,
+   "withInkMs": 11.35,
+   "inkPassCostMs": 5.52,
+   "hud": {
+    "splatsRendered": 213326,
+    "splatsLoaded": 213326,
+    "dataScale": 0.5,
+    "dataPassPx": [
+     1440,
+     900
+    ],
+    "canvasPx": [
+     2880,
+     1800
+    ],
+    "lod": {
+     "enabled": true,
+     "splatBudget": 1500000,
+     "deviceClass": "desktop"
+    }
+   },
+   "dataPassSplats": {
+    "gbuf": 213326,
+    "flag": 213326
+   }
+  },
+  "dpr1 back": {
+   "shadeOnlyMs": 3.18,
+   "withInkMs": 7.97,
+   "inkPassCostMs": 5.3,
+   "hud": {
+    "splatsRendered": 213326,
+    "splatsLoaded": 213326,
+    "dataScale": 1,
+    "dataPassPx": [
+     1440,
+     900
+    ],
+    "canvasPx": [
+     1440,
+     900
+    ],
+    "lod": {
+     "enabled": true,
+     "splatBudget": 1500000,
+     "deviceClass": "desktop"
+    }
+   },
+   "dataPassSplats": {
+    "gbuf": 213148,
+    "flag": 213148
+   }
+  }
+ }
+}
