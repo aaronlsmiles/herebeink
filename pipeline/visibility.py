@@ -10,7 +10,8 @@ The answer key is a depth panorama from c at 0.25 degrees per cell, built from t
 two rules: "opaque" (splats at opacity 0.2 or more, the nearest footprint wins) or "rendered" (splats at
 0.05 or more, composited front to back, the surface where accumulated opacity first reaches 0.5). The
 hallway key points are drawn into the same panorama as opaque points. Which rule the ladder's plan freezes
-is hub Amendment 1; both are computed so the instrument can be compared with COLMAP's own points.
+is hub Amendment 1; a third, "planes" (the room as a box fitted to the splat, with the rendered surface
+where it stands more than tau in front: the furniture), is compared with them under hub call 92. All are computed so the instrument can be compared with COLMAP's own points.
 Through the doorway no measured splat forms the key: nothing past the frame was measured (door_edge.py).
 
 A Gaussian's footprint seen from c is an isotropic approximation of its ellipse: angular sigma =
@@ -45,7 +46,11 @@ MAX_FOOTPRINT_DEG = 6.0
 WEIGHT_CUT = 0.05
 ROOM_BAND_M = (0.3, 2.3)
 CORRIDOR_GROW_M = 0.3
-RULES = ("rendered", "opaque")
+RULES = ("rendered", "opaque", "planes")
+BOX_REGION_M = 0.6
+BOX_STRONG = 0.3
+BOX_BIN_M = 0.02
+CEILING_FROM_M = 2.5
 RUNG_NAMES = ("R1", "R2", "R4", "R8", "R4r", "P")
 BATCH = 50_000
 
@@ -208,6 +213,53 @@ def footprint_depth(pose: Pose, xyz: np.ndarray, opacity: np.ndarray, sigma_m: n
     return depth.reshape(h, w)
 
 
+@dataclass(frozen=True)
+class RoomBox:
+    """The room as a box on the door wall's axes: u along the door's outward normal, v along the wall."""
+    u: np.ndarray
+    v: np.ndarray
+    u_min: float
+    u_max: float
+    v_min: float
+    v_max: float
+    y_min: float
+    y_max: float
+
+
+def _outermost_strong(x: np.ndarray, w: np.ndarray, side: int) -> float:
+    """The outermost 2 cm layer, within 0.6 m of the extreme, holding at least 0.3 of that region's densest layer."""
+    edge = np.percentile(x, 99.5 if side > 0 else 0.5)
+    lo, hi = (edge - BOX_REGION_M, edge) if side > 0 else (edge, edge + BOX_REGION_M)
+    keep = (x >= lo) & (x <= hi)
+    h, e = np.histogram(x[keep], bins=np.arange(lo, hi + BOX_BIN_M, BOX_BIN_M), weights=w[keep])
+    strong = np.flatnonzero(h >= BOX_STRONG * h.max())
+    k = strong[-1] if side > 0 else strong[0]
+    return float((e[k] + e[k + 1]) / 2)
+
+
+def fit_room_box(xyz: np.ndarray, opacity: np.ndarray, scale: dict) -> RoomBox:
+    """Floor y = 0 (scale.json's), the door wall on the door plane, the other walls and the ceiling as the
+    outermost strong layers of the splat's splats at opacity 0.05 or more (furniture stands inside them)."""
+    o = door_edge.opening(scale)
+    keep = opacity >= RENDERED_MIN
+    p, w = xyz[keep], opacity[keep]
+    band = (p[:, 1] >= ROOM_BAND_M[0]) & (p[:, 1] <= ROOM_BAND_M[1])
+    pu, pv = p[band] @ o.normal, p[band] @ o.lateral
+    up = p[:, 1] >= CEILING_FROM_M
+    return RoomBox(o.normal, o.lateral, _outermost_strong(pu, w[band], -1), float(o.centre @ o.normal),
+                   _outermost_strong(pv, w[band], -1), _outermost_strong(pv, w[band], 1),
+                   0.0, _outermost_strong(p[up, 1], w[up], 1))
+
+
+def box_depth(pose: Pose, box: RoomBox, deg: float = DEG) -> np.ndarray:
+    dirs, _ = equirect_dirs(deg)
+    d = world_dirs(pose, dirs.reshape(-1, 3))
+    axes = np.stack([box.u, np.array([0.0, 1.0, 0.0]), box.v])
+    lo = np.array([box.u_min, box.y_min, box.v_min])
+    hi = np.array([box.u_max, box.y_max, box.v_max])
+    return box_distance(axes @ pose.c_world, d @ axes.T, lo, hi).reshape(grid(deg))
+
+
 def through_door(pose: Pose, scale: dict, deg: float = DEG) -> np.ndarray:
     dirs, _ = equirect_dirs(deg)
     return door_edge.through_opening(pose.c_world, world_dirs(pose, dirs.reshape(-1, 3)), scale).reshape(grid(deg))
@@ -217,7 +269,13 @@ def key_depth(pose: Pose, xyz: np.ndarray, opacity: np.ndarray, sigma_m: np.ndar
               scale: dict, rule: str, deg: float = DEG) -> np.ndarray:
     """The answer key: the measured surface by `rule`, except through the doorway, where nothing past the
     frame was measured (hub calls 62, 90) and only the hallway key points form it."""
-    measured = footprint_depth(pose, xyz, opacity, sigma_m, rule, deg)
+    if rule == "planes":
+        rendered = footprint_depth(pose, xyz, opacity, sigma_m, "rendered", deg)
+        measured = box_depth(pose, fit_room_box(xyz, opacity, scale), deg)
+        front = np.isfinite(rendered) & (rendered < measured - TAU_M)
+        measured[front] = rendered[front]
+    else:
+        measured = footprint_depth(pose, xyz, opacity, sigma_m, rule, deg)
     measured[through_door(pose, scale, deg)] = np.inf
     return combine(measured, point_depth(pose, key_pts, deg))
 
@@ -388,6 +446,20 @@ def run(work: Path, rule: str = "rendered", deg: float = DEG) -> dict:
                           "withSurface": round(float(wt[door & finite].sum() / max(wt[door].sum(), 1e-12)), 4)},
               "notScanned": round(float(wt[~finite].sum()), 4),
               "agreementWithColmap": {t: agreement(depth, cm, wt, np.ones(depth.shape, bool), tau=t) for t in (0.05, 0.15, 0.30)}}
+        not_key = ~np.isfinite(point_depth(pose, kp, deg))
+        pooled = {"cells": 0, "within": 0}
+        rd["inViewOutsideKeyPoints"] = {}
+        for rung in ("R1", "R2", "R4", "R8"):
+            m = in_rung(flat, manifest, rung).reshape(depth.shape) & not_key
+            a = agreement(depth, cm, wt, m)
+            rd["inViewOutsideKeyPoints"][rung] = a
+            if a["cells"]:
+                pooled["cells"] += a["cells"]
+                pooled["within"] += round(a["withinTau"] * a["cells"])
+        rd["call92Pooled"] = {"cells": pooled["cells"], "withinTau": round(pooled["within"] / max(pooled["cells"], 1), 4)}
+        if rl == "planes":
+            b = fit_room_box(xyz, op, scale)
+            rd["box"] = {k: round(float(getattr(b, k)), 3) for k in ("u_min", "u_max", "v_min", "v_max", "y_min", "y_max")}
         doc["rules"][rl] = rd
         if rl == rule:
             out = (depth, finite, pts, in_v)
@@ -414,6 +486,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--rule", choices=RULES, default="rendered")
     a = ap.parse_args(argv)
     doc = run(a.work, a.rule)
+    for rl, rd in doc["rules"].items():
+        r8 = rd["inViewOutsideKeyPoints"]["R8"]
+        print(f"{rl:9s}: call 92 pooled R1+R2+R4+R8 in view, within 0.15 m of COLMAP: {rd['call92Pooled']['withinTau']:.1%} "
+              f"of {rd['call92Pooled']['cells']} cells; union (R8's view) {r8['withinTau']:.1%} of {r8['cells']}"
+              + (f"; box {rd['box']}" if "box" in rd else ""))
     for rl, rd in doc["rules"].items():
         ag = rd["agreementWithColmap"]
         print(f"{rl:9s}: surface in {rd['directionsWithSurface']:.1%} of directions; agrees with COLMAP within "

@@ -187,3 +187,38 @@ def test_no_measured_splat_forms_the_key_through_the_doorway():
     through = vis.door_edge.through_opening(C, vis.world_dirs(pose, dirs.reshape(-1, 3)), scale).reshape(d.shape)
     assert through.any() and not np.isfinite(d[through]).any()
     assert (w * np.isfinite(d))[~through].sum() / w[~through].sum() > 0.95
+
+
+DOOR_X2 = {"door": {"centre": [2.0, 0.0, 0.0], "outward": [1.0, 0.0, 0.0], "width_tape_m": 0.72,
+                    "top": [[2.0, 2.0, -0.36], [2.0, 2.0, 0.36]]}}
+
+
+def test_room_box_is_the_outermost_strong_surfaces():
+    p, op, sg = box_room(haze=100000)
+    furniture = np.c_[np.random.default_rng(5).uniform(-1.0, -0.6, 8000), np.random.default_rng(6).uniform(0, 1.0, 8000),
+                      np.random.default_rng(7).uniform(-1.4, 1.4, 8000)]
+    box = vis.fit_room_box(np.vstack([p, furniture]), np.r_[op, np.full(8000, 0.9)], DOOR_X2)
+    assert box.u_max == pytest.approx(2.0, abs=1e-9)                # the door wall is the door plane
+    assert box.u_min == pytest.approx(-2.0, abs=0.03)
+    assert box.v_min == pytest.approx(-1.5, abs=0.03) and box.v_max == pytest.approx(1.5, abs=0.03)
+    assert box.y_max == pytest.approx(2.5, abs=0.03) and box.y_min == 0.0
+
+
+def test_plane_key_takes_the_walls_and_the_furniture_in_front_of_them():
+    p, op, sg = box_room(n=20000, haze=50000)
+    block = np.c_[np.full(4000, 1.2), np.random.default_rng(8).uniform(0.0, 1.6, 4000), np.random.default_rng(9).uniform(-1.4, -0.6, 4000)]
+    pts, opa, sig = np.vstack([p, block]), np.r_[op, np.full(4000, 0.9)], np.r_[sg, np.full(4000, 0.02)]
+    pose = vis.Pose(C, RIG_FROM_WORLD)
+    d = vis.key_depth(pose, pts, opa, sig, np.zeros((0, 3)), DOOR_X2, "planes", deg=1.0)
+    dirs, w = vis.equirect_dirs(1.0)
+    world = vis.world_dirs(pose, dirs.reshape(-1, 3))
+    wall = vis.box_distance(C, world, LO, HI).reshape(d.shape)
+    through = vis.door_edge.through_opening(C, world, DOOR_X2).reshape(d.shape)
+    hits_block = (world[:, 0] > 0.3) & (np.abs(world[:, 2] / world[:, 0] * 1.2 + 1.0) < 0.35) & (np.abs(world[:, 1] / world[:, 0] * 1.2) < 0.3)
+    hits_block = hits_block.reshape(d.shape) & ~through
+    assert not np.isfinite(d[through]).any()
+    elsewhere = ~through & ~hits_block
+    assert np.median(np.abs(d[elsewhere] - wall[elsewhere])) < 0.03
+    to_block = (1.2 / world[:, 0]).reshape(d.shape)                   # along each ray, to the block's face at x = 1.2
+    assert np.median(np.abs(d[hits_block] - to_block[hits_block])) < 0.05
+    assert np.median(wall[hits_block] - d[hits_block]) > 0.5          # not the wall behind it
