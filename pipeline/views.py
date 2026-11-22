@@ -131,6 +131,13 @@ def v360_filter(view: View, size: int = VIEW_SIZE, yaw_offset: float = 0) -> str
             f":roll=0:rorder=ypr:interp=cubic:w={size}:h={size}")
 
 
+def v360_flat_filter(yaw: float, pitch: float, h_fov: float, v_fov: float, width: int, height: int) -> str:
+    """One rectilinear cut with its own fields of view and size, for views that are not the rig's square
+    90 degree cameras. Same v360 conventions: positive yaw to the right, positive pitch up."""
+    return (f"v360=e:flat:h_fov={h_fov:.6f}:v_fov={v_fov:.6f}:yaw={wrap_yaw(yaw):.6f}:pitch={pitch:.6f}"
+            f":roll=0:rorder=ypr:interp=cubic:w={width}:h={height}")
+
+
 def rig_config() -> list[dict]:
     """COLMAP rig_configurator input: one rig whose cameras are the folders images/rig/<view>/."""
     cameras = []
