@@ -69,15 +69,16 @@ export const COASTLINE_REQUIRED = [
 ] as const;
 
 export class ContractError extends Error {
-  constructor(readonly file: string, readonly problems: string[]) {
-    super(`${file} does not match the scene contract:\n- ${problems.join("\n- ")}`);
+  constructor(readonly file: string, readonly problems: string[], contract = "scene") {
+    super(`${file} does not match the ${contract} contract:\n- ${problems.join("\n- ")}`);
     this.name = "ContractError";
   }
 }
 
-type Json = unknown;
+export type Json = unknown;
 
-class Checker {
+/** Collects every problem in a file rather than stopping at the first; the ladder's reader shares it. */
+export class Checker {
   readonly problems: string[] = [];
   private fail(path: string, what: string) { this.problems.push(`${path}: ${what}`); }
 
@@ -126,8 +127,8 @@ class Checker {
   }
 }
 
-const SHA256 = /^[0-9a-f]{64}$/;
-const UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
+export const SHA256 = /^[0-9a-f]{64}$/;
+export const UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
 
 /** A film key's height may differ from eye height by this much (metres). */
 const FILM_HEIGHT_TOLERANCE_M = 0.02;
@@ -140,7 +141,7 @@ const SCALE_TOLERANCE = 1e-3;
  * exporter writes it. Anything else would draw a file mirrored, squashed or sheared against the
  * others and the coastline, with no error to say so.
  */
-function checkSimilarity(c: Checker, v: Json, path: string) {
+export function checkSimilarity(c: Checker, v: Json, path: string) {
   if (!Array.isArray(v) || v.length !== 16 || !v.every((x) => typeof x === "number" && Number.isFinite(x))) return;
   const m = v as number[];
   if (m[3] !== 0 || m[7] !== 0 || m[11] !== 0 || m[15] !== 1) c.problems.push(`${path}: last row should be 0, 0, 0, 1`);
