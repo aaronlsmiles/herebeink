@@ -67,7 +67,7 @@ export class Hud {
       `frame   ${n.medianFrameMs.toFixed(1)} ms median, ${n.p90FrameMs.toFixed(1)} p90 (${n.frames} in ${n.windowS.toFixed(1)} s)`,
       `splats  ${n.splatsRendered.toLocaleString("en-GB")} drawn of ${n.splatsLoaded.toLocaleString("en-GB")} loaded`,
       `lod     ${n.lod.enabled ? "on" : "off"}, budget ${n.lod.splatBudget.toLocaleString("en-GB")} (${n.lod.deviceClass})`,
-      `file    ${n.measuredFile === "measuredPhone" ? "phone (lighter measured file)" : "full measured file"}`,
+      `file    ${n.measuredFile.startsWith("ladder") ? n.measuredFile : n.measuredFile === "measuredPhone" ? "phone (lighter measured file)" : "full measured file"}`,
       `data    ×${n.dataScale.toFixed(2)} = ${n.dataPassPx[0]}×${n.dataPassPx[1]} of ${n.canvasPx[0]}×${n.canvasPx[1]} @ dpr ${n.dpr}`,
       `ink     ${n.ink ? "on" : "filter"}`,
     ].join("\n");

@@ -22,12 +22,13 @@ async function fetchJson(url: URL): Promise<unknown> {
 }
 
 /** Fetches and checks scene.json, then its coastline. sha256 is the pipeline's check, not the browser's. */
-export async function loadScene(sceneUrl: string, pageUrl = location.href): Promise<LoadedScene> {
+export async function loadScene(sceneUrl: string, pageUrl = location.href, opts: { preview?: boolean } = {}): Promise<LoadedScene> {
   const base = new URL(sceneUrl, pageUrl);
   const scene = validateScene(await fetchJson(base), base.href);
   const coastUrl = new URL(scene.coastline.url, base);
   const previewUrl = new URL(scene.splats.measuredPreview.url, base);
-  const preview = fetch(previewUrl).then((r) => {
+  // A page opened straight into the ladder draws no Part 1 splats, so it skips the preview's bytes.
+  const preview = opts.preview === false ? Promise.resolve(undefined) : fetch(previewUrl).then((r) => {
     if (!r.ok) throw new Error(`Could not load ${previewUrl.href}: HTTP ${r.status}`);
     return r.arrayBuffer();
   });
@@ -43,11 +44,27 @@ export function placeMesh(mesh: THREE.Object3D, f: SplatFile) {
 }
 
 export interface WorldMesh {
-  key: SplatKey;
+  /** Part 1's file keys, or the ladder's (seen, imagined, wrong). */
+  key: string;
   provenance: number;
   mesh: SplatMesh;
   /** Whether the file carries a level-of-detail tree, so its first draw must wait for a cut. */
   lod: boolean;
+  /** The ladder's wrong file: drawn as imagined, and in red while the red pen is on. */
+  wrong?: boolean;
+}
+
+/** What the viewer draws: Part 1's three files, or one ladder rung's. */
+export interface World {
+  readonly meshes: ReadonlyMap<string, WorldMesh>;
+  readonly firstSplats: Promise<void>;
+  readonly complete: Promise<void>;
+  /** For the HUD: which measured file fills the photograph's slot, or the rung being drawn. */
+  readonly measuredFile: string;
+  readonly splatCount: number;
+  readonly fullyLoaded: boolean;
+  /** Takes every mesh out of the scene and frees its memory; a file still arriving is dropped when it lands. */
+  dispose(): void;
 }
 
 export interface SplatWorldHooks {
@@ -66,9 +83,12 @@ export interface SplatWorldHooks {
  * first, so the first screen is light, then the measured file (the full one, or on a phone the
  * lighter one), which replaces it at the moment it is first drawn, never before.
  */
-export class SplatWorld {
+export class SplatWorld implements World {
   /** The files being drawn: a file joins when its hook calls `shown`. */
   readonly meshes = new Map<SplatKey, WorldMesh>();
+  /** In the scene but held until their detail cut arrives. */
+  private readonly pending = new Set<WorldMesh>();
+  private disposed = false;
   readonly firstSplats: Promise<void>;
   readonly complete: Promise<void>;
   /** The file that fills the "measured" slot, never one the scene lacks. */
@@ -84,6 +104,17 @@ export class SplatWorld {
     this.complete = preview.then(async () => {
       await Promise.all([this.bring("overlap"), this.bring("imagined"), this.bring("measured", () => this.retirePreview())]);
     });
+  }
+
+  dispose() {
+    this.disposed = true;
+    for (const m of [...this.meshes.values(), ...this.pending]) {
+      this.hooks.removed(m);
+      this.three.remove(m.mesh);
+      m.mesh.dispose();
+    }
+    this.meshes.clear();
+    this.pending.clear();
   }
 
   private retirePreview() {
@@ -105,7 +136,9 @@ export class SplatWorld {
     const url = new URL(f.url, this.loaded.base).href;
     // The preview is small enough to draw whole; building its LoD tree would only delay it.
     const preview = key === "measuredPreview";
-    const bytes = preview ? this.loaded.previewBytes : undefined;
+    // The world can be built twice (back from the ladder); Spark may hand the first copy's buffer to a worker.
+    const kept = this.loaded.previewBytes;
+    const bytes = preview && kept && kept.byteLength > 0 ? kept.slice(0) : undefined;
     const mesh = bytes
       ? new SplatMesh({ fileBytes: bytes, fileName: f.url, lod: false })
       : new SplatMesh({ url, lod: !preview });
@@ -117,10 +150,14 @@ export class SplatWorld {
 
   /** Loads a file, puts it in the scene, and resolves once it is being drawn; `onShown` runs at that moment. */
   private async bring(key: SplatKey, onShown?: () => void): Promise<WorldMesh> {
+    if (this.disposed) return new Promise<WorldMesh>(() => {});
     const m = await this.make(key);
+    if (this.disposed) { m.mesh.dispose(); return m; }
     this.three.add(m.mesh);
+    this.pending.add(m);
     return new Promise<WorldMesh>((done) => {
       this.hooks.added(m, () => {
+        this.pending.delete(m);
         this.meshes.set(key, m);
         onShown?.();
         done(m);

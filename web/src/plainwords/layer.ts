@@ -8,6 +8,7 @@ import type { Viewer } from "../viewer.ts";
 import { addressWithoutPlain, startMode, storeMode, type PlainMode } from "./state.ts";
 import { lineView, Trail } from "./trail.ts";
 import { CHAPTERS, chapterLabel, NOTES, UI, type NoteId } from "./words.ts";
+import { LADDER_NOTES, type LadderNoteId } from "./ladder.ts";
 
 export interface PlainWords {
   /** The map opened or closed, however it was asked. */
@@ -50,13 +51,23 @@ function arrow() {
 
 /** A note before (or beside) the thing it explains; the label is said once, for screen readers, as the voice's name. */
 function note(id: NoteId, heading?: HTMLElement) {
+  return plainNote(id, NOTES[id], heading);
+}
+
+/** Any note in the layer's voice; it shows only while the layer is on (plainwords.css). */
+export function plainNote(id: string, lines: readonly string[], heading?: HTMLElement) {
   const n = el("div", { className: "pw-note" });
   n.setAttribute("role", "note");
   n.dataset.note = id;
   const said = el("span", { className: "visually-hidden" }, `${UI.label}: `);
-  const text = el("div", { className: "pw-text" }, ...(heading ? [heading] : []), said, ...NOTES[id].map((t) => el("p", {}, t)));
+  const text = el("div", { className: "pw-text" }, ...(heading ? [heading] : []), said, ...lines.map((t) => el("p", {}, t)));
   n.append(mark(), text);
   return n;
+}
+
+/** A ladder note, by its id in LADDER_NOTES. */
+export function ladderNote(id: LadderNoteId, heading?: HTMLElement) {
+  return plainNote(`ladder-${id}`, LADDER_NOTES[id], heading);
 }
 
 function storage(): Storage | null {
@@ -122,6 +133,7 @@ export function mountPlainWords(o: PlainOptions): PlainWords | null {
   forControl("map", (h) => note("mapButton", h));
   forControl("ink", (h) => note("ink", h));
   forControl("xr", (h) => note("vr", h));
+  forControl("ladder", (h) => ladderNote("ladderButton", h));
   /** Each heading quotes its control's live label; Enter VR's note shows only once its button does. */
   const syncFold = () => {
     for (const { control, heading, n } of forControls) {

@@ -8,7 +8,8 @@ import { InkPass } from "./ink/outline.ts";
 import { applyShade, makeShadeUniforms, srgbVector, type DynoFloat, type ShadeUniforms } from "./ink/paper.ts";
 import { MAP_CEILING_CUT_M, MapView } from "./map.ts";
 import type { DebugView } from "./params.ts";
-import { type LoadedScene, SplatWorld, type WorldMesh } from "./scene.ts";
+import type { Coastline } from "./contract.ts";
+import { type LoadedScene, SplatWorld, type SplatWorldHooks, type World, type WorldMesh } from "./scene.ts";
 import type { Tokens } from "./theme/tokens.ts";
 import { applyPose, createWalk, walkModeFor, type WalkController, type WalkMode } from "./walk.ts";
 import { FrameWindow, type HudNumbers } from "./hud.ts";
@@ -38,6 +39,16 @@ export interface ViewerOptions {
   fixedSize?: { width: number; height: number } | null;
   start: { position: THREE.Vector3Like; yaw: number; pitch: number };
   container: HTMLElement;
+  /** Builds the first world; Part 1's three files when absent (the ladder passes a rung's). */
+  world?: WorldFactory;
+}
+
+export type WorldFactory = (three: THREE.Scene, hooks: SplatWorldHooks) => World;
+
+/** Pen lines laid over the world (the ladder's wedges and plan): they follow the canvas size and the scheme. */
+export interface Overlay {
+  setResolution(w: number, h: number): void;
+  setColour(hex: string): void;
 }
 
 /**
@@ -51,8 +62,9 @@ export class Viewer {
   readonly spark: SparkRenderer;
   readonly data: DataPasses;
   readonly ink: InkPass;
-  readonly world: SplatWorld;
-  readonly coast: CoastlineLines;
+  world: World;
+  coast: CoastlineLines;
+  readonly overlays = new Set<Overlay>();
   readonly map: MapView;
   readonly frames = new FrameWindow();
   /** The camera's parent in a headset session: the rig is what the walk moves; the headset adds the head. */
@@ -67,6 +79,9 @@ export class Viewer {
   inkPassesOn = true;
   private readonly shade: ShadeUniforms;
   private readonly twins = new Map<SplatMesh, Twin>();
+  /** The red-pen flag of each mesh that has one (the ladder's wrong file): 1 while the pen is on. */
+  private readonly redFlags = new Map<SplatMesh, DynoFloat>();
+  private redPenOn = false;
   /** Files in the scene whose detail cut has not arrived: invisible (alpha 0) but already asking for it. */
   private readonly held = new Map<SplatMesh, { reveal: DynoFloat; shown: () => void; since: number }>();
   private readonly walkMask = (1 << LAYER.shade) | (1 << LAYER.walk);
@@ -116,7 +131,7 @@ export class Viewer {
       lodSplatCount: o.budget.lodSplatCount, dataScale: o.budget.dataScale,
     });
     this.ink = new InkPass(this.data.gbufTarget.texture, this.data.flagTarget.texture, dw, dh, NEAR, FAR);
-    this.shade = makeShadeUniforms(o.tokens.paper, o.ink);
+    this.shade = makeShadeUniforms(o.tokens.paper, o.ink, o.tokens.red);
     this.configureInk();
 
     this.coast = makeCoastlineLines(coastline, o.tokens.ink, contract.floor.y);
@@ -130,19 +145,74 @@ export class Viewer {
     this.walkMode = o.walk ?? walkModeFor(null, window.matchMedia?.("(pointer: coarse)").matches ?? false);
     this.walk = createWalk(canvas, { walkable: contract.walkable.polygons, eyeY }, o.start, this.walkMode);
 
-    this.world = new SplatWorld(this.scene, o.loaded, {
-      added: (m, shown) => this.attach(m, shown),
-      removed: (m) => this.detach(m),
-    }, o.measuredFile ?? "measured");
+    this.world = (o.world ?? ((three, hooks) => new SplatWorld(three, o.loaded, hooks, o.measuredFile ?? "measured")))(this.scene, this.hooks);
 
     this.resize();
     window.addEventListener("resize", () => this.resize());
   }
 
+  private readonly hooks: SplatWorldHooks = {
+    added: (m, shown) => this.attach(m, shown),
+    removed: (m) => this.detach(m),
+  };
+
+  /**
+   * Drops the world being drawn and builds another in its place: the walk's three files, or a ladder rung's.
+   * The old world's meshes leave the scene and free their memory before the new one fetches anything.
+   */
+  replaceWorld(make: WorldFactory): World {
+    this.world.dispose();
+    this.world = make(this.scene, this.hooks);
+    return this.world;
+  }
+
+  /** The default world, for the way back from the ladder. */
+  walkWorld(): WorldFactory {
+    return (three, hooks) => new SplatWorld(three, this.o.loaded, hooks, this.o.measuredFile ?? "measured");
+  }
+
+  /** Swaps the floor's pen line (and the map's) for another set of polylines, keeping the switch and the scheme. */
+  setCoastline(c: Pick<Coastline, "polylines">) {
+    this.scene.remove(this.coast.floor, this.coast.map);
+    this.coast.dispose();
+    this.coast = makeCoastlineLines(c, this.tokens.ink, this.o.loaded.scene.floor.y);
+    this.scene.add(this.coast.floor, this.coast.map);
+    this.coast.setVisible(this.coastOn);
+    const buf = this.renderer.getDrawingBufferSize(new THREE.Vector2());
+    this.coast.setResolution(buf.x, buf.y);
+  }
+
+  addOverlay(o: Overlay & { walk: THREE.Object3D; map: THREE.Object3D }) {
+    this.scene.add(o.walk, o.map);
+    this.overlays.add(o);
+    const buf = this.renderer.getDrawingBufferSize(new THREE.Vector2());
+    o.setResolution(buf.x, buf.y);
+    o.setColour(this.tokens.ink);
+  }
+
+  removeOverlay(o: Overlay & { walk: THREE.Object3D; map: THREE.Object3D }) {
+    this.scene.remove(o.walk, o.map);
+    this.overlays.delete(o);
+  }
+
+  /** The red pen: the ladder's wrong file is drawn in red ink (and a red wash in the map), or as plain imagined. */
+  setRedPen(on: boolean) {
+    this.redPenOn = on;
+    for (const f of this.redFlags.values()) f.value = on ? 1 : 0;
+    this.refreshMeshes();
+    for (const t of this.twins.values()) t.flag.updateVersion();
+  }
+
+  get redPen() {
+    return this.redPenOn;
+  }
+
   private attach(m: WorldMesh, shown: () => void) {
     const reveal = dyno.dynoFloat(m.lod ? 0 : 1);
-    applyShade(m.mesh, this.shade, m.provenance, reveal);
-    this.twins.set(m.mesh, this.data.addTwin(m.mesh, m.provenance, reveal));
+    const red = m.wrong ? dyno.dynoFloat(this.redPenOn ? 1 : 0) : undefined;
+    if (red) this.redFlags.set(m.mesh, red);
+    applyShade(m.mesh, this.shade, m.provenance, reveal, red);
+    this.twins.set(m.mesh, this.data.addTwin(m.mesh, m.provenance, reveal, red));
     if (m.lod) this.held.set(m.mesh, { reveal, shown, since: performance.now() });
     else shown();
   }
@@ -152,6 +222,7 @@ export class Viewer {
     if (t) this.data.removeTwin(t);
     this.twins.delete(m.mesh);
     this.held.delete(m.mesh);
+    this.redFlags.delete(m.mesh);
   }
 
   /** Whether a frame runs the data passes: they, and so their detail cuts, exist only then. */
@@ -202,6 +273,7 @@ export class Viewer {
       dataScale: this.budget.dataScale,
       dpr: this.renderer.getPixelRatio(),
       ink: this.tokens.ink,
+      red: this.tokens.red,
       paper: this.tokens.paper,
       lightTravel: this.o.loaded.scene.light.direction,
       inkOn: this.inkOn,
@@ -222,6 +294,7 @@ export class Viewer {
     this.ink.setSize(dw, dh);
     const buf = this.renderer.getDrawingBufferSize(new THREE.Vector2());
     this.coast.setResolution(buf.x, buf.y);
+    for (const o of this.overlays) o.setResolution(buf.x, buf.y);
     this.map.resize(w, h);
   }
 
@@ -244,7 +317,9 @@ export class Viewer {
     this.tokens = t;
     this.renderer.setClearColor(t.unscanned);
     this.shade.paper.value = srgbVector(t.paper);
+    this.shade.red.value = srgbVector(t.red);
     this.coast.setColour(t.ink);
+    for (const o of this.overlays) o.setColour(t.ink);
     this.refreshMeshes();
     this.configureInk();
   }

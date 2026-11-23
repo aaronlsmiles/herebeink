@@ -5,7 +5,10 @@ import { budgetFor, measuredKeyFor } from "./device.ts";
 import { ContractError } from "./contract.ts";
 import { Hud } from "./hud.ts";
 import { InkSwitch } from "./inkswitch.ts";
-import { parseParams } from "./params.ts";
+import { ladderUrlFor, parseParams } from "./params.ts";
+import { rungById } from "./ladder/contract.ts";
+import { LadderMode, loadLadder } from "./ladder/mode.ts";
+import { RungWorld } from "./ladder/world.ts";
 import { mountPlainWords } from "./plainwords/layer.ts";
 import { layerAllowed } from "./plainwords/state.ts";
 import { loadScene } from "./scene.ts";
@@ -27,9 +30,18 @@ async function boot() {
   if (!gfx.ok) { showFatal(root, gfx.title, gfx.detail); return; }
 
   document.documentElement.dataset.sceneFetch = performance.now().toFixed(0);
+  // The ladder is offered only where its file is published and valid; a page without one is Part 1 as it was.
+  const ladderUrl = ladderUrlFor(params.sceneUrl, import.meta.env.VITE_LADDER_URL as string | undefined, location.origin);
+  // Not on the hallway link either: the ladder draws where the measuring stops, which those walkers must find.
+  const ladderLoad = params.film || !params.coast ? Promise.resolve(null) : loadLadder(ladderUrl).catch((e: unknown) => {
+    if (params.ladder) console.warn(e);
+    return null;
+  });
+  // Opened straight into the ladder, the page waits for it, so Part 1's files are never fetched.
+  const ladderFirst = params.ladder ? await ladderLoad : null;
   let loaded;
   try {
-    loaded = await loadScene(params.sceneUrl);
+    loaded = await loadScene(params.sceneUrl, location.href, { preview: !ladderFirst });
   } catch (e) {
     const detail = e instanceof ContractError ? e.message : `The scene could not be loaded: ${(e as Error).message}`;
     showFatal(root, "The world did not arrive", detail);
@@ -45,6 +57,9 @@ async function boot() {
   const viewer = new Viewer({
     loaded, budget, tokens: tokensFor(dark.matches), ink: params.ink, coast: params.coast, debug: params.debug, walk: params.walk, fixedSize: params.size, container: root,
     measuredFile: measuredKeyFor(budget.deviceClass, s.splats.measuredPhone !== undefined, params.measured),
+    world: ladderFirst
+      ? (three, hooks) => new RungWorld(three, ladderFirst.ladder.rungs[0], undefined, ladderFirst.base, hooks)
+      : undefined,
     start: {
       position: new THREE.Vector3(...startPose.position),
       yaw: THREE.MathUtils.degToRad(startPose.yawDeg),
@@ -67,6 +82,25 @@ async function boot() {
   const chrome = buildChrome(root, { coast: params.coast, credit: s.credit, touch: viewer.walkMode === "touch", onWalkIn: () => viewer.walk.engage() });
   const inkSwitch = new InkSwitch(params.ink, (on) => viewer.setInk(on));
   chrome.bar.append(inkSwitch.button);
+  const ladderReady = await (ladderFirst ? Promise.resolve(ladderFirst) : Promise.race([ladderLoad, Promise.resolve(null)]));
+  let ladder: LadderMode | null = null;
+  const mountLadder = (l: NonNullable<typeof ladderReady>) => {
+    ladder = new LadderMode({
+      viewer, chrome, root, ladder: l.ladder, base: l.base, phone: budget.deviceClass === "phone",
+      redPen: params.redPen, coastline: loaded.coastline,
+    });
+    return ladder;
+  };
+  if (ladderReady) mountLadder(ladderReady);
+  // A ladder that arrives after the first screen still gets its switch.
+  else void ladderLoad.then((l) => { if (l && !ladder) mountLadder(l); });
+  if (params.ladder && ladderFirst) {
+    const asked = params.ladder === "first" || rungById(ladderFirst.ladder, params.ladder) ? params.ladder : "first";
+    ladder!.enter(asked, { standAtCamera: params.pose === null });
+    viewer.walk.engage();
+  } else if (params.ladder) {
+    chrome.setStatus("The ladder could not be loaded, so this is the walk.");
+  }
   const plain = mountPlainWords({
     root, chrome, viewer, coastline: loaded.coastline, doorOutward: s.door.outward,
     search: location.search, allowed: layerAllowed(params),
@@ -118,7 +152,7 @@ async function boot() {
 
   if (import.meta.env.DEV) {
     (window as unknown as { __hbi: unknown }).__hbi = {
-      viewer, chrome, inkSwitch, params,
+      viewer, chrome, inkSwitch, params, ladder: () => ladder,
       setPose: (x: number, y: number, z: number, yawDeg: number, pitchDeg: number) =>
         viewer.walk.setPose({ position: { x, y, z }, yaw: THREE.MathUtils.degToRad(yawDeg), pitch: THREE.MathUtils.degToRad(pitchDeg) }),
       setParts: (p: Partial<typeof viewer.ink.parts>) => { Object.assign(viewer.ink.parts, p); viewer.ink.applyParts(); },

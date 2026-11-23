@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_SCENE_URL, parseParams, type SceneEnv } from "./params.ts";
+import { DEFAULT_LADDER_URL, DEFAULT_SCENE_URL, ladderUrlFor, parseParams, type SceneEnv } from "./params.ts";
 
 describe("parseParams", () => {
   it("defaults to the fixture with ink and coastlines on", () => {
@@ -7,7 +7,7 @@ describe("parseParams", () => {
     expect(p).toEqual({
       sceneUrl: DEFAULT_SCENE_URL, ink: true, coast: true, hud: false, map: false,
       lod: null, gscale: null, dpr: null, measured: null, pose: null, debug: null, walk: null, xr: null,
-      film: false, dump: false, frameSet: null, frameRange: null, size: null,
+      film: false, dump: false, frameSet: null, frameRange: null, size: null, ladder: null, redPen: false,
     });
   });
 
@@ -111,3 +111,27 @@ describe("?scene= in production", () => {
   });
 });
 
+
+describe("ladder parameters", () => {
+  it("opens the ladder on a named rung, any case, or on its first step", () => {
+    expect(parseParams("").ladder).toBeNull();
+    expect(parseParams("?ladder=R4").ladder).toBe("R4");
+    expect(parseParams("?ladder=r4b").ladder).toBe("R4b");
+    expect(parseParams("?ladder=1").ladder).toBe("first");
+    expect(parseParams("?ladder").ladder).toBe("first");
+    expect(parseParams("?ladder=R3").ladder).toBeNull();
+  });
+
+  it("turns the red pen on only when asked", () => {
+    expect(parseParams("?ladder=R1").redPen).toBe(false);
+    expect(parseParams("?ladder=R1&redpen=1").redPen).toBe(true);
+  });
+
+  it("finds ladder.json beside the scene, unless the build names it", () => {
+    expect(ladderUrlFor("https://media.example/herebeink/v3/scene.json", undefined, "https://page.example"))
+      .toBe("https://media.example/herebeink/v3/ladder/ladder.json");
+    expect(ladderUrlFor("https://media.example/herebeink/v3/scene.json", "https://media.example/x/ladder.json", "https://page.example"))
+      .toBe("https://media.example/x/ladder.json");
+    expect(ladderUrlFor(DEFAULT_SCENE_URL, undefined, "http://localhost:5173")).toBe(DEFAULT_LADDER_URL);
+  });
+});

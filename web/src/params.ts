@@ -1,3 +1,5 @@
+import { RUNG_IDS, type RungId } from "./ladder/contract.ts";
+
 export type DebugView = "shade" | "depth" | "normal" | "flag" | "edges";
 const DEBUG_VIEWS: readonly DebugView[] = ["shade", "depth", "normal", "flag", "edges"];
 
@@ -37,6 +39,29 @@ export interface Params {
   frameRange: { from: number; count: number | null } | null;
   /** ?w= and ?h=: a fixed canvas size at device pixel ratio 1, for a frame dump. */
   size: { width: number; height: number } | null;
+  /** ?ladder=<rung id> opens the ladder on that rung; ?ladder=1 on its first step; null keeps the walk. */
+  ladder: RungId | "first" | null;
+  /** ?redpen=1: the ladder's imagined splats that landed wrong are drawn in red. */
+  redPen: boolean;
+}
+
+export const DEFAULT_LADDER_URL = "/fixture-ladder/ladder.json";
+
+/**
+ * Where ladder.json is: the build's own address for it, else beside the scene (…/v3/scene.json →
+ * …/v3/ladder/ladder.json, where the pipeline publishes it). The dev fixture scene has its fixture ladder
+ * apart, since the scene fixture's folder is rebuilt whole by make_fixture.py.
+ */
+export function ladderUrlFor(sceneUrl: string, envLadderUrl: string | undefined, origin: string): string {
+  if (envLadderUrl) return envLadderUrl;
+  if (sceneUrl === DEFAULT_SCENE_URL) return DEFAULT_LADDER_URL;
+  return new URL("ladder/ladder.json", new URL(sceneUrl, origin)).href;
+}
+
+function parseLadder(v: string | null): RungId | "first" | null {
+  if (v === null) return null;
+  if (v === "" || v === "1") return "first";
+  return RUNG_IDS.find((id) => id.toLowerCase() === v.toLowerCase()) ?? null;
 }
 
 export const DEFAULT_SCENE_URL = "/fixture/scene.json";
@@ -127,5 +152,7 @@ export function parseParams(search: string, envSceneUrl?: string, env: SceneEnv 
     frameRange: parseRange(p.get("from"), p.get("frames")),
     size: parseSize(p.get("w"), p.get("h")),
     walk: p.get("walk") === "touch" ? "touch" : p.get("walk") === "desktop" ? "desktop" : null,
+    ladder: parseLadder(p.get("ladder")),
+    redPen: p.get("redpen") === "1",
   };
 }

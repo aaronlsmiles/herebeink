@@ -25,7 +25,7 @@ find "$out" -mindepth 1 -maxdepth 1 ! -name .vercel -exec rm -rf {} +
 # The fixture and the butterfly sample are test data, the spike and smoke pages are internal, and
 # source maps would publish the source layout.
 rsync -a \
-  --exclude '/fixture/' --exclude '/sample/' --exclude '/spike.html' --exclude '/smoke.html' \
+  --exclude '/fixture/' --exclude '/fixture-ladder/' --exclude '/sample/' --exclude '/spike.html' --exclude '/smoke.html' \
   --exclude '*.map' \
   "$here/web/dist/" "$out/"
 cp "$here/tools/deploy/vercel.json" "$out/vercel.json"

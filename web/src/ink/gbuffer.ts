@@ -62,18 +62,21 @@ function gbufferModifier(mesh: SplatMesh, near: DynoFloat, far: DynoFloat, revea
   });
 }
 
-/** rgb = the file's provenance: 0 measured, 0.5 overlap, 1 imagined. */
-function flagModifier(provenance: DynoFloat, reveal: DynoFloat) {
+/**
+ * r and b = the file's provenance: 0 measured, 0.5 overlap, 1 imagined; g = the mesh's red-pen flag, which the
+ * present pass reads to draw that mesh's strokes in red (the ladder's wrong file with the pen on; 0 otherwise).
+ */
+function flagModifier(provenance: DynoFloat, reveal: DynoFloat, red: DynoFloat) {
   return dynoBlock({ gsplat: Gsplat }, { gsplat: Gsplat }, ({ gsplat }) => {
     if (!gsplat) throw new Error("flagModifier: no gsplat");
     const out = new Dyno({
-      inTypes: { gsplat: Gsplat, provenance: "float", reveal: "float" },
+      inTypes: { gsplat: Gsplat, provenance: "float", reveal: "float", red: "float" },
       outTypes: { gsplat: Gsplat },
-      inputs: { gsplat, provenance, reveal },
+      inputs: { gsplat, provenance, reveal, red },
       statements: ({ inputs: i, outputs: o }) => [
         `${o.gsplat} = ${i.gsplat};`,
         `${o.gsplat}.rgba.a *= ${i.reveal};`,
-        `${o.gsplat}.rgba.rgb = vec3(${i.provenance});`,
+        `${o.gsplat}.rgba.rgb = vec3(${i.provenance}, ${i.red}, ${i.provenance});`,
       ],
     });
     return { gsplat: out.outputs.gsplat };
@@ -155,7 +158,7 @@ export class DataPasses {
   }
 
   /** `reveal` is the mesh's own 0 or 1, shared with its shade dyno so all three passes hold and show it together. */
-  addTwin(source: SplatMesh, provenance: number, reveal: DynoFloat): Twin {
+  addTwin(source: SplatMesh, provenance: number, reveal: DynoFloat, red: DynoFloat = dynoFloat(0)): Twin {
     const twin = (layer: number, modifier: (m: SplatMesh) => ReturnType<typeof flagModifier>) => {
       const m = new SplatMesh({ packedSplats: source.packedSplats });
       m.matrixAutoUpdate = source.matrixAutoUpdate;
@@ -171,7 +174,7 @@ export class DataPasses {
     };
     const t: Twin = {
       gbuf: twin(LAYER.gbuf, (m) => gbufferModifier(m, this.near, this.far, reveal)),
-      flag: twin(LAYER.flag, () => flagModifier(dynoFloat(provenance), reveal)),
+      flag: twin(LAYER.flag, () => flagModifier(dynoFloat(provenance), reveal, red)),
     };
     this.twins.add(t);
     return t;

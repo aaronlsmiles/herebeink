@@ -14,6 +14,8 @@ export interface ShadeUniforms {
   paper: ReturnType<typeof dynoVec3>;
   /** Splats with world y above this are dropped: the map view's ceiling cut. */
   clipY: DynoFloat;
+  /** The red pen's colour (sRGB); a mesh shows it only where its own red flag is 1. */
+  red: ReturnType<typeof dynoVec3>;
 }
 
 /** THREE.Color holds linear values; splat rgb and the canvas are sRGB-encoded. */
@@ -22,9 +24,17 @@ export function srgbVector(hex: string): THREE.Vector3 {
   return new THREE.Vector3(c.r, c.g, c.b);
 }
 
-export function makeShadeUniforms(paperHex: string, ink: boolean): ShadeUniforms {
-  return { ink: dynoFloat(ink ? 1 : 0), paper: dynoVec3(srgbVector(paperHex)), clipY: dynoFloat(1e6) };
+export function makeShadeUniforms(paperHex: string, ink: boolean, redHex = "#b8322a"): ShadeUniforms {
+  return { ink: dynoFloat(ink ? 1 : 0), paper: dynoVec3(srgbVector(paperHex)), clipY: dynoFloat(1e6), red: dynoVec3(srgbVector(redHex)) };
 }
+
+/**
+ * How strongly the red pen tints the wrong file's paper. Only a wash: the strokes carry the red, and a lit
+ * wall with no strokes still needs to read as marked, but the drawing must stay paper.
+ */
+export const RED_PAPER_WASH = 0.2;
+/** Under the plain filter there are no strokes, so the wash is the whole mark. */
+export const RED_FILTER_WASH = 0.45;
 
 export const FILTER_CONTRAST = 1.35;
 
@@ -35,14 +45,14 @@ export const FILTER_CONTRAST = 1.35;
  * 0 or 1: a file whose detail cut has not arrived yet is held at 0 so it is never drawn as the
  * tree's coarse root.
  */
-export function shadeModifier(u: ShadeUniforms, provenance: number, reveal: DynoFloat) {
+export function shadeModifier(u: ShadeUniforms, provenance: number, reveal: DynoFloat, red: DynoFloat = dynoFloat(0)) {
   const prov = dynoFloat(provenance);
   return dynoBlock({ gsplat: Gsplat }, { gsplat: Gsplat }, ({ gsplat }) => {
     if (!gsplat) throw new Error("shadeModifier: no gsplat");
     const out = new Dyno({
-      inTypes: { gsplat: Gsplat, prov: "float", ink: "float", paper: "vec3", clipY: "float", reveal: "float" },
+      inTypes: { gsplat: Gsplat, prov: "float", ink: "float", paper: "vec3", clipY: "float", reveal: "float", red: "float", redInk: "vec3" },
       outTypes: { gsplat: Gsplat },
-      inputs: { gsplat, prov, ink: u.ink, paper: u.paper, clipY: u.clipY, reveal },
+      inputs: { gsplat, prov, ink: u.ink, paper: u.paper, clipY: u.clipY, reveal, red, redInk: u.red },
       statements: ({ inputs: i, outputs: o }) => [
         `${o.gsplat} = ${i.gsplat};`,
         `${o.gsplat}.rgba.a *= ${i.reveal};`,
@@ -51,7 +61,8 @@ export function shadeModifier(u: ShadeUniforms, provenance: number, reveal: Dyno
         `  vec3 photo = ${i.gsplat}.rgba.rgb;`,
         `  float y = dot(photo, vec3(0.2126, 0.7152, 0.0722));`,
         `  vec3 filtered = vec3(clamp((y - 0.5) * ${FILTER_CONTRAST.toFixed(2)} + 0.5, 0.0, 1.0));`,
-        `  vec3 drawn = ${i.ink} > 0.5 ? ${i.paper} : filtered;`,
+        `  vec3 drawn = ${i.ink} > 0.5 ? mix(${i.paper}, ${i.redInk}, ${RED_PAPER_WASH.toFixed(2)} * ${i.red})`,
+        `                         : mix(filtered, ${i.redInk}, ${RED_FILTER_WASH.toFixed(2)} * ${i.red});`,
         `  ${o.gsplat}.rgba.rgb = mix(photo, drawn, ${i.prov});`,
         `}`,
       ],
@@ -60,8 +71,8 @@ export function shadeModifier(u: ShadeUniforms, provenance: number, reveal: Dyno
   });
 }
 
-export function applyShade(mesh: SplatMesh, u: ShadeUniforms, provenance: number, reveal: DynoFloat) {
-  mesh.worldModifier = shadeModifier(u, provenance, reveal);
+export function applyShade(mesh: SplatMesh, u: ShadeUniforms, provenance: number, reveal: DynoFloat, red?: DynoFloat) {
+  mesh.worldModifier = shadeModifier(u, provenance, reveal, red);
   mesh.updateGenerator();
 }
 

@@ -6,9 +6,9 @@ import { LAYER } from "./ink/layers.ts";
 export const MAP_CEILING_CUT_M = 1.2;
 const PAD_M = 0.6;
 /** A few pixels of the measured photograph itself, as the legend's swatch for it. */
-const PHOTO_SAMPLE_PNG = "iVBORw0KGgoAAAANSUhEUgAAABIAAAAMCAIAAADgcHrrAAACEklEQVR42gXBzW7TQBAA4N3ZPydOHJIUSItUVUiAUDhx7Tty4MaBdwBxRRx4ACREVSEENFClbRo3oXHttXd3Zvg++frtO2YBkltfleXFxeLHyxdPDg72uqb2jW9aPxiNM9dj6TrK1+tyNJnW1Qass2CEUsJp6Dl79HT+/Wz14eOXsnUEzukMhFBKKSkkIyEyC2MNCMEiEUi+q7fry8X2epkNR1f1+PNJ++rN+9PFpdFWAEgFUsqExIKVMSCj4MhN04KyxWRPGiO1vDdVN9dny+UyuJ5QGpEZJINMCRETgILORwzYVE0IQkjr8sJa226uyj8n4+no/NdZQowphZiQkJhiTBpAS6mIRAhRZdq4XKSAiL6qHj+bl+tyvD9DKURKRIRCW6uJk5AZ3O7Kqt56v4vR+xC6EK3TblSYYaGNWa2uG98yYgqBmWyWYUpMpL99/WS00cbpLCPm6Otq969L2gymzd329+nP4/nh4f5BCh5ktM40tU8JdddVoRPASpLsat/d+c3mduv98+NJkeddMeAU+71sV1dJtmCGRESI0FecK2mB+kbIuinPr/A2TqEo//5tdrda6qvVuottf5AJToIQBDES5FnmnLJ9PZzkbmiTo3zsHh1M7w9gfvRglMPZYrGtmybK0CElBAAm1IlQSAYNTLg/m80ezvq9TGdGSiqKwc3msolRuaJNog2Vy9gYIMb/ZfFQMcNkdScAAAAASUVORK5CYII=";
+export const PHOTO_SAMPLE_PNG = "iVBORw0KGgoAAAANSUhEUgAAABIAAAAMCAIAAADgcHrrAAACEklEQVR42gXBzW7TQBAA4N3ZPydOHJIUSItUVUiAUDhx7Tty4MaBdwBxRRx4ACREVSEENFClbRo3oXHttXd3Zvg++frtO2YBkltfleXFxeLHyxdPDg72uqb2jW9aPxiNM9dj6TrK1+tyNJnW1Qass2CEUsJp6Dl79HT+/Wz14eOXsnUEzukMhFBKKSkkIyEyC2MNCMEiEUi+q7fry8X2epkNR1f1+PNJ++rN+9PFpdFWAEgFUsqExIKVMSCj4MhN04KyxWRPGiO1vDdVN9dny+UyuJ5QGpEZJINMCRETgILORwzYVE0IQkjr8sJa226uyj8n4+no/NdZQowphZiQkJhiTBpAS6mIRAhRZdq4XKSAiL6qHj+bl+tyvD9DKURKRIRCW6uJk5AZ3O7Kqt56v4vR+xC6EK3TblSYYaGNWa2uG98yYgqBmWyWYUpMpL99/WS00cbpLCPm6Otq969L2gymzd329+nP4/nh4f5BCh5ktM40tU8JdddVoRPASpLsat/d+c3mduv98+NJkeddMeAU+71sV1dJtmCGRESI0FecK2mB+kbIuinPr/A2TqEo//5tdrda6qvVuottf5AJToIQBDES5FnmnLJ9PZzkbmiTo3zsHh1M7w9gfvRglMPZYrGtmybK0CElBAAm1IlQSAYNTLg/m80ezvq9TGdGSiqKwc3msolRuaJNog2Vy9gYIMb/ZfFQMcNkdScAAAAASUVORK5CYII=";
 /** Paper inside a pen outline: the map shows the drawing as bare paper, and the outline keeps it off the key's own paper. */
-const DRAWING_SWATCH = `<svg class="swatch drawing" viewBox="0 0 20 14" aria-hidden="true" focusable="false"><rect x="0.75" y="0.75" width="18.5" height="12.5" fill="var(--paper)" stroke="var(--ink)" stroke-width="1.5"/></svg>`;
+export const DRAWING_SWATCH = `<svg class="swatch drawing" viewBox="0 0 20 14" aria-hidden="true" focusable="false"><rect x="0.75" y="0.75" width="18.5" height="12.5" fill="var(--paper)" stroke="var(--ink)" stroke-width="1.5"/></svg>`;
 
 export interface MapBounds { minX: number; maxX: number; minZ: number; maxZ: number }
 
@@ -64,6 +64,14 @@ export class MapView {
     });
     this.dot = this.root.querySelector(".map-dot")!;
     container.appendChild(this.root);
+  }
+
+  /** Puts another key in the default one's place (the ladder's), or brings the default back with null. */
+  setLegend(custom: HTMLElement | null) {
+    const own = this.root.querySelector<HTMLElement>(".map-legend:not(.ladder-map-key)")!;
+    this.root.querySelectorAll(".ladder-map-key").forEach((e) => { if (e !== custom) e.remove(); });
+    own.hidden = custom !== null;
+    if (custom && custom.parentElement !== this.root) this.root.append(custom);
   }
 
   setCoastVisible(on: boolean) {

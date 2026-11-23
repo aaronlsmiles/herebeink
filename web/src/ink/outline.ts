@@ -273,6 +273,7 @@ uniform mat4 projInv;
 uniform mat4 camWorld;
 uniform vec3 lightTravel;
 uniform vec3 ink;
+uniform vec3 redInk;
 uniform vec3 paper;
 uniform float hatchOn;
 uniform float grain;
@@ -316,7 +317,9 @@ void main() {
   if (hatchOn > 0.5) hatch = ht * imagined * cover * lines.a;
   float grainA = grain * hash(floor(gl_FragCoord.xy)) * imagined * cover * hatchOn;
   float a = 1.0 - (1.0 - outline) * (1.0 - lines.g) * (1.0 - hatch) * (1.0 - grainA);
-  outColor = vec4(ink, a);
+  // The red pen: strokes over a mesh flagged red are drawn in red ink; the coastline (lines.g) stays ink.
+  float red = smoothstep(0.3, 0.7, under.a > 0.01 ? under.g / under.a : 0.0) * (1.0 - lines.g);
+  outColor = vec4(mix(ink, redInk, red), a);
 }
 `;
 
@@ -351,6 +354,8 @@ export interface InkConfig {
   dataScale: number;
   dpr: number;
   ink: string;
+  /** The red pen's ink; strokes take it only over a mesh flagged red. */
+  red?: string;
   paper: string;
   lightTravel: readonly [number, number, number];
   /** The ink pass on the imagined half: outlines, hatching, grain. Off is the plain filter. */
@@ -415,6 +420,7 @@ export class InkPass {
       camWorld: { value: new THREE.Matrix4() },
       lightTravel: { value: new THREE.Vector3(0, -1, 0) },
       ink: { value: new THREE.Color() },
+      redInk: { value: new THREE.Color() },
       paper: { value: new THREE.Color() },
       hatchOn: { value: 1 },
       grain: { value: PEN.grain },
@@ -447,6 +453,7 @@ export class InkPass {
     const pu = this.present_.uniforms;
     // The present pass writes straight to the sRGB canvas, so hand it sRGB-encoded numbers.
     (pu.ink.value as THREE.Color).set(c.ink).convertLinearToSRGB();
+    (pu.redInk.value as THREE.Color).set(c.red ?? c.ink).convertLinearToSRGB();
     (pu.paper.value as THREE.Color).set(c.paper).convertLinearToSRGB();
     (pu.lightTravel.value as THREE.Vector3).set(...c.lightTravel).normalize();
     pu.hatchWidthPx.value = PEN.hatchCssPx * c.dpr;

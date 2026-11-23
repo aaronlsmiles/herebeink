@@ -18,6 +18,7 @@
   --paper: #f4efe4;
   --ink: #1c1a17;
   --unscanned: #8f908c;
+  --red: #b8322a;
   /* Blue pencil: the plain-words voice only, the same values on every studio site. */
   --pencil: #4a82c4;
   --pencil-ink: #1b4a8a;
@@ -31,6 +32,7 @@
     --paper: #1c1a17;
     --ink: #e8e2d4;
     --unscanned: #5c5d5a;
+    --red: #ff7a66;
     --pencil: #6a9fe0;
     --pencil-ink: #aecbf4;
     --pencil-wash: #1f2b3b;

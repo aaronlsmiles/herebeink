@@ -1,0 +1,147 @@
+/* The ladder's panel: a second cartouche on the same sheet, bottom left where the first one sat. The steps are a
+   surveyor's scale bar (alternate ink and open segments over each label), the chart is drawn in the sheet's own
+   pen, and the red pen is the only colour the panel adds. Square corners, no rules, no shadows. */
+
+.ladder {
+  position: absolute;
+  left: var(--gutter);
+  bottom: max(var(--gutter), env(safe-area-inset-bottom));
+  width: min(24rem, calc(100% - 2 * var(--gutter)));
+  max-height: calc(100% - 2 * var(--gutter) - 56px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: var(--soft) var(--paper);
+  box-sizing: border-box;
+  padding: 16px 18px 14px;
+  background: var(--paper);
+  color: var(--ink);
+  line-height: 1.4;
+  font-size: 0.875rem;
+}
+/* The first screen, brought back by "About", takes the corner while it is up. */
+.intro:not([hidden]) ~ .ladder { display: none; }
+
+.ladder-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.ladder-head h2 { margin: 0; font-size: 1.25rem; font-weight: 650; letter-spacing: -0.02em; line-height: 1.1; }
+.ladder .pw-note { margin: 0 0 12px; font-size: 0.9375rem; }
+
+/* The scale bar. */
+.ladder-steps { display: flex; gap: 0; margin: 0 0 10px; }
+.ladder-step {
+  flex: 1 1 auto;
+  display: flex; flex-direction: column; align-items: stretch; gap: 6px;
+  min-height: 48px; padding: 0 0 6px;
+  background: transparent; border: 0; border-radius: 0;
+  font-size: 0.875rem; font-weight: 500; white-space: nowrap;
+}
+.ladder-step:last-child { flex-grow: 2.4; }
+.ladder-step .tick { display: block; height: 7px; box-sizing: border-box; border: 1.5px solid var(--ink); border-left-width: 0; }
+.ladder-step:first-child .tick { border-left-width: 1.5px; }
+.ladder-step[data-alt="0"] .tick { background: var(--ink); }
+.ladder-step .name { padding: 2px 8px 0; text-align: left; }
+.ladder-step[aria-pressed="true"] .name { background: var(--ink); color: var(--paper); padding-block: 4px; }
+.ladder-step[aria-pressed="mixed"] .name { box-shadow: inset 0 -2px 0 var(--ink); }
+@media (hover: hover) and (pointer: fine) {
+  .ladder-step:not([aria-pressed="true"]):hover .name { background: var(--step); }
+}
+.ladder-step:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.ladder-status { margin: 0 0 6px; color: var(--soft); }
+.ladder-status:empty { display: none; }
+
+.ladder-now h3 { margin: 0 0 6px; font-size: 1.0625rem; font-weight: 650; letter-spacing: -0.01em; }
+.ladder-now .tag {
+  display: inline-block; margin-left: 4px; padding: 0 6px; vertical-align: 2px;
+  background: var(--step); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.01em;
+}
+.ladder-readout { display: grid; grid-template-columns: max-content 1fr; gap: 3px 12px; margin: 0 0 10px; }
+.ladder-readout > div { display: contents; }
+.ladder-readout dt { font-weight: 600; }
+.ladder-readout dd { margin: 0; font-variant-numeric: tabular-nums; }
+.ladder-text { margin: 0 0 10px; }
+
+/* The red pen: a chip like the bar's, which turns the pen's own red when it is on. */
+.ladder-red { display: inline-flex; align-items: center; gap: 8px; background: var(--step); }
+.ladder-red .pen { width: 14px; height: 3px; background: var(--red); transform: rotate(-35deg); }
+.ladder-red[aria-pressed="true"] { background: var(--red); color: var(--paper); }
+.ladder-red[aria-pressed="true"] .pen { background: var(--paper); }
+@media (hover: hover) and (pointer: fine) {
+  .ladder-red:not([aria-pressed="true"]):hover { background: color-mix(in srgb, var(--red) 14%, var(--paper)); }
+}
+@media (pointer: coarse) { .ladder-red { min-height: var(--tap); } }
+
+/* Chart and key, folded on small screens so the room stays in view. */
+.ladder-more { margin-top: 4px; }
+.ladder-more summary {
+  display: flex; align-items: center; min-height: 40px; padding: 0 12px;
+  background: var(--step); font-weight: 600; cursor: pointer; list-style: none;
+}
+.ladder-more summary::-webkit-details-marker { display: none; }
+.ladder-more summary::after { content: "+"; margin-left: auto; font-weight: 500; }
+.ladder-more[open] summary::after { content: "−"; }
+.ladder-more summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.ladder-more[open] summary { margin-bottom: 10px; }
+.ladder-more .pw-note { margin-bottom: 10px; }
+
+.ladder-figure { margin: 0 0 12px; }
+.ladder-chart { display: block; width: 100%; height: auto; overflow: visible; font-family: var(--font-mono); }
+.ladder-chart .lc-grid { stroke: var(--ink); stroke-opacity: 0.1; stroke-width: 1; }
+.ladder-chart .lc-axis { stroke: var(--ink); stroke-width: 1.25; }
+.ladder-chart .lc-tick { fill: var(--soft); font-size: 9px; }
+.ladder-chart .lc-axis-label { fill: var(--ink); font-family: var(--font); font-size: 9.5px; font-weight: 500; }
+.ladder-chart .lc-floor { fill: none; stroke: var(--ink); stroke-opacity: 0.55; stroke-width: 1.25; stroke-dasharray: 4 3; }
+.ladder-chart .lc-hit { fill: transparent; }
+.ladder-chart .lc-point { cursor: pointer; outline: none; }
+.ladder-chart .lc-dot { fill: var(--ink); stroke: var(--ink); stroke-width: 1.5; }
+.ladder-chart .is-rec .lc-dot { fill: var(--paper); }
+.ladder-chart .lc-ring { fill: none; stroke: var(--ink); stroke-width: 1.25; }
+.ladder-chart .lc-label { fill: var(--ink); font-size: 10px; font-weight: 600; }
+.ladder-chart .lc-point:focus-visible .lc-hit { stroke: var(--focus); stroke-width: 1.5; stroke-dasharray: 2 2; }
+@media (hover: hover) and (pointer: fine) {
+  .ladder-chart .lc-point:hover .lc-hit { fill: var(--step); }
+}
+.ladder-figure figcaption { margin-top: 6px; color: var(--soft); font-size: 0.8125rem; line-height: 1.4; }
+.ladder-figure figcaption p { margin: 0; }
+.ladder-figure figcaption p + p { margin-top: 4px; }
+
+/* The ladder's key, in the panel and on the map: Part 1's key's grid, the ladder's own classes. */
+.ladder-key { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; }
+.ladder-key > div { display: contents; }
+.ladder-key dt { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.ladder-key dd { margin: 0; }
+.ladder-key .swatch.photo { background: var(--photo-sample, var(--step)) center / cover; }
+/* With the pen off, its row stays in the key but steps back, since nothing on the sheet is red. */
+:is(.ladder, .ladder-map-key):not([data-red="1"]) .ladder-key .is-red :is(dt, dd) { opacity: 0.55; }
+
+/* Over the map the chart folds away: the map's own key, top left, says the same in the map's words. */
+.map:not([hidden]) ~ .ladder .ladder-more,
+.map:not([hidden]) ~ .ladder > .pw-note { display: none; }
+
+@media (max-width: 719px) {
+  .ladder {
+    left: var(--gutter); right: var(--gutter); width: auto;
+    max-height: min(62%, calc(100% - 2 * var(--gutter) - 104px));
+    padding: 12px 14px 10px;
+  }
+  .ladder-head { margin-bottom: 8px; }
+  .ladder-head h2 { font-size: 1.0625rem; }
+  .ladder-step { min-height: var(--tap); font-size: 0.8125rem; }
+  .ladder-step .name { padding-inline: 6px; }
+  .ladder-readout { font-size: 0.8125rem; }
+  /* On a phone the map's key and the panel share the foot: over the map, the panel keeps only its steps and the
+     key sits above them. */
+  .map:not([hidden]) ~ .ladder > :not(.ladder-steps, .ladder-head) { display: none; }
+  .map:not([hidden]) ~ .ladder .ladder-steps { margin-bottom: 0; }
+  html[data-ladder="on"] .map-legend.ladder-map-key { bottom: calc(max(var(--gutter), env(safe-area-inset-bottom)) + 124px); }
+}
+@media (forced-colors: active) {
+  .ladder-step[aria-pressed="true"] .name, .ladder-red[aria-pressed="true"] { forced-color-adjust: none; background: Highlight; color: HighlightText; }
+}
+
+/* The panel's key on one line: swatch and name, wrapping as it must. */
+.ladder-key.compact { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0 0 12px; font-size: 0.8125rem; }
+.ladder-key.compact > div { display: flex; }
+.ladder-key.compact dt { font-weight: 500; gap: 6px; }
+.ladder-key.compact .swatch { width: 16px; height: 11px; }
+.ladder-key.compact .swatch.line { height: 3px; }
+.map:not([hidden]) ~ .ladder .ladder-key.compact { display: none; }

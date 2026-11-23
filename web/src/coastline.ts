@@ -48,13 +48,15 @@ export function jitterPolyline(points: readonly (readonly [number, number])[], a
 export interface CoastlineLines {
   floor: THREE.Group;
   map: THREE.Group;
+  /** Frees the lines' geometry and materials once they leave the scene. */
+  dispose(): void;
   /** LineMaterial needs the canvas size in pixels for its screen-space widths. */
   setResolution(w: number, h: number): void;
   setColour(hex: string): void;
   setVisible(on: boolean): void;
 }
 
-export function makeCoastlineLines(c: Coastline, inkHex: string, floorY: number): CoastlineLines {
+export function makeCoastlineLines(c: Pick<Coastline, "polylines">, inkHex: string, floorY: number): CoastlineLines {
   const floor = new THREE.Group();
   const map = new THREE.Group();
   floor.name = "coastline-floor";
@@ -96,6 +98,11 @@ export function makeCoastlineLines(c: Coastline, inkHex: string, floorY: number)
     setVisible(on) {
       floor.visible = on;
       map.visible = on;
+    },
+    dispose() {
+      for (const g of [floor, map]) g.traverse((o) => { if (o instanceof Line2) o.geometry.dispose(); });
+      floorMat.dispose();
+      mapMat.dispose();
     },
   };
 }

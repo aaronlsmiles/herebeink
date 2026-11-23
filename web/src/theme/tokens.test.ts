@@ -5,10 +5,10 @@ import { TOKENS, tokensFor } from "./tokens.ts";
 
 describe("tokensFor", () => {
   it("returns the light pair on paper", () => {
-    expect(tokensFor(false)).toEqual({ paper: "#f4efe4", ink: "#1c1a17", unscanned: "#8f908c" });
+    expect(tokensFor(false)).toEqual({ paper: "#f4efe4", ink: "#1c1a17", unscanned: "#8f908c", red: "#b8322a" });
   });
   it("swaps paper and ink in the dark scheme", () => {
-    expect(tokensFor(true)).toEqual({ paper: "#1c1a17", ink: "#e8e2d4", unscanned: "#5c5d5a" });
+    expect(tokensFor(true)).toEqual({ paper: "#1c1a17", ink: "#e8e2d4", unscanned: "#5c5d5a", red: "#ff7a66" });
   });
   it("keeps the unscanned tone apart from both paper and ink in each scheme", () => {
     const lum = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).reduce((a, b) => a + b, 0) / 3;
