@@ -153,6 +153,13 @@ The first real material: one sitting in a narrow room with a high ceiling and ba
 - **Shipped:** media v3 on the media host (v1 and v2 untouched), the page pointed at it and deployed; the live checks pass and the console is clean. The plain words now say "about four in every hundred" (3.8 %), and THESIS carries both splits. The film keeps the v2 look and was not re-cut.
 - **Left:** a faint grey smudge at the foot of the left jamb, on the frame's side of the seal.
 
+## 23 Nov — Part 2: R2 placed after all (Amendment 3)
+
+- **Why R2 failed.** Gate A's colour check scored the chosen pose after its fit, but each rival at the better of its start and its fit. R2's runner-up, a pose turned a quarter round, won only at its start (0.654); fitted, it scored 0.467 and fitted the room far worse.
+- **The change, and its cost.** Rivals are now scored after their fit too, where the search fitted them. That makes the colour check easier to pass; it changes no Gate A result for any other world, only which pose is R2's runner-up. It was written after R2 failed, read twice by an expert reviewer, and put to Aaron again once the session's first account of it (that it made the gate harder to fail) was found to be backwards. Under it R2 still fell just short of the colour margin (0.096 against 0.10), so it was placed by eye on the grounds written before any ladder world existed: the runner-up is the mirror image, the geometry prefers the chosen pose, and its handedness matches every placed world.
+- **What it changed in the findings.** R2 imagines 89 % of the scored room, between one photo and four, as predicted before it was scored. And the share of invention that lands right barely moves from two photos to four: the step is smaller than the gap between the two runs of four, so by the rule fixed before generation that step is within run-to-run noise. Placing R2 made the ladder's story weaker in that respect, not neater.
+- **On the page.** The ladder was republished under a new media prefix (`herebeink/v3/ladder-2/`), and the chart says that one and two photos were placed by eye, two photos only after the rule changed.
+
 ## 23 Nov — Part 2: what the ladder found
 
 - **R4r, the last world**, R4's four photos in reconstruction mode, was not placed: Marble built it about 13 cm away from the camera point the photos were taken from, and colour could not tell it from its mirror image. Reconstruction mode wants photos that overlap; these had 24° gaps. Generation is finished: six worlds, four placed (one photo, four photos twice, eight photos), two not (two photos, and R4r), plus Part 1's 360 world.

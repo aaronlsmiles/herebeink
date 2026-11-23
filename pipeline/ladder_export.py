@@ -107,7 +107,7 @@ def frustums(pose: vis.Pose, manifest: dict, rung: str) -> list[dict]:
     return out
 
 
-def build(work: Path, out: Path, now: datetime | None = None) -> dict:
+def build(work: Path, out: Path, now: datetime | None = None, prefix: str = PREFIX) -> dict:
     now = now or datetime.now(timezone.utc)
     scores = json.loads((work / "ladder" / "scores.json").read_text())["rungs"]
     shown = json.loads((work / "ladder" / "visibility.json").read_text())["rungs"]
@@ -139,17 +139,18 @@ def build(work: Path, out: Path, now: datetime | None = None) -> dict:
     for p in sorted(out.rglob("*")):
         if p.is_file() and p.suffix in (".spz", ".json") and p.name != "files.json":
             rel = p.relative_to(out).as_posix()
-            items.append({"key": PREFIX + rel, "path": rel, "bytes": p.stat().st_size, "sha256": export.sha256(p),
+            items.append({"key": prefix + rel, "path": rel, "bytes": p.stat().st_size, "sha256": export.sha256(p),
                           "content_type": export.TYPES[p.suffix]})
-    (out.parent / "ladder_media_manifest.json").write_text(json.dumps({"prefix": PREFIX, "root": out.name, "items": items}, indent=1) + "\n")
+    (out.parent / "ladder_media_manifest.json").write_text(json.dumps({"prefix": prefix, "root": out.name, "items": items}, indent=1) + "\n")
     return doc
 
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--work", type=Path, default=WORK)
+    ap.add_argument("--prefix", default=PREFIX, help="media prefix; published objects never change, so a changed ladder gets a new one")
     a = ap.parse_args(argv)
-    doc = build(a.work, a.work / "export" / "ladder")
+    doc = build(a.work, a.work / "export" / "ladder", prefix=a.prefix)
     for e in doc["rungs"]:
         print(f"{e['id']:4s} shown {e['shown']:.3f}, imagined {e['imagined'] if e['imagined'] is None else round(e['imagined'], 3)}, "
               f"files {'yes' if 'splats' in e else 'no'}")

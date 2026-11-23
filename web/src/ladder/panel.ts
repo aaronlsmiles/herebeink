@@ -168,6 +168,7 @@ export class LadderPanel {
         <p>${CHART.floor}</p>
         <p>${CHART.reconstruction} ${CHART.seeds}</p>
         <p><span aria-hidden="true">* </span>${CHART.scanReading}</p>
+        ${this.ladder.rungs.some((r) => r.id === "R2" && r.placed) ? `<p>${CHART.byEye}</p>` : ""}
       </figcaption>`;
   }
 

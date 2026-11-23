@@ -72,6 +72,7 @@ export const CHART = {
   reconstruction: "Open rings: reconstruction mode, where Marble laid the photos out itself.",
   scanReading: "For 1 and 2 photos, the placing and the split rest on the part of the scan that agrees least with the camera survey, so those two points are the scan's own reading.",
   seeds: "4 photos is plotted twice, once for each seed.",
+  byEye: "1 and 2 photos were set on the room by a person's look, not by the automatic colour check; 2 photos only after that check's rule was changed, once it had failed (Amendment 3, in the log).",
   notPlotted: (labels: string[]) => `Not placed, so not plotted: ${labels.join("; ")}.`,
 };
 

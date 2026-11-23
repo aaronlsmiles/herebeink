@@ -1,6 +1,6 @@
 # Redeploy
 
-The viewer is a static page: `web/dist` plus `tools/deploy/vercel.json`, on Vercel, served at `herebeink.studionephele.com`. The scene (`scene.json`, the `.spz` files and `coastline.json`) is not part of it: it lives on the media host, and the page learns where from `VITE_SCENE_URL`, baked in at build.
+The viewer is a static page: `web/dist` plus `tools/deploy/vercel.json`, on Vercel, served at `herebeink.studionephele.com`. The scene (`scene.json`, the `.spz` files and `coastline.json`) is not part of it: it lives on the media host, and the page learns where from `VITE_SCENE_URL`, baked in at build. The ladder (Part 2) sits beside the scene at `<prefix>/ladder/ladder.json` unless `VITE_LADDER_URL` names another; since 23 Nov it does (`herebeink/v3/ladder-2/ladder.json`, the ladder with R2 placed under Amendment 3), because published objects never change and a changed ladder takes a new prefix.
 
 Nothing here has been deployed. A production deploy is public, so it runs only on the owner's word.
 
