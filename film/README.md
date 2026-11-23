@@ -83,3 +83,13 @@ ffmpeg -i film/out/herebeink-16x9.mp4 -i music.wav -map 0:v -map 1:a -c:v copy \
 ```
 
 The same for the 9:16 cut. Cut points fall on segment boundaries (the table above), so a bar line can be matched by moving `dur` or a frame range in `edl.json` and re-cutting.
+
+## The Part 2 addendum (`edl-ladder.json`)
+
+37.5 s, 16:9 and 9:16, captions only: the ladder mode on the real worlds, one settled still per rung from the page's start view (1 photo, 4, 8, the 360 still), then the red pen on four photos, and an end card. The stills are page shots taken from the dev server serving `pipeline/work/export/ladder/` at 1920 × 1080 and 540 × 675 at 2× (the 9:16 window), saved as `film/frames/stills/<aspect>/ladder-*.png` (gitignored). Cut with:
+
+```bash
+cd web && node tools/film-cut.mjs --edl film/edl-ladder.json --no-check
+```
+
+Outputs `film/out/herebeink-ladder-*`; published under `herebeink/film/ladder-v1/` (MEDIA.md). `--no-check` because the stills are single frames: the cut's checks look for jumps between frames of a dumped walk.

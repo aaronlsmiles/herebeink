@@ -1,6 +1,6 @@
 // Cuts the film from film/edl.json: the dumped frame sets, the page shots, an optional headset clip, and captions
 // set in Geist as PNGs (Homebrew's ffmpeg has neither libass nor drawtext), burned in and written as WebVTT and SRT.
-// Usage: node tools/film-cut.mjs [--aspect 16x9|9x16|both] [--no-check] [--crf 23] [--only id,id (a draft of some segments, to film/out/draft-*)]
+// Usage: node tools/film-cut.mjs [--edl film/edl.json] [--aspect 16x9|9x16|both] [--no-check] [--crf 23] [--only id,id (a draft of some segments, to film/out/draft-*)]
 // Segments are cut at CRF 16 and joined into a master in film/frames/cut/<aspect>/; the film itself is that master
 // encoded once more at --crf for the web (23 keeps the pen lines; the paper's grain is what costs bits).
 // Outputs in film/out/ (gitignored): herebeink-<aspect>.mp4, herebeink.vtt, herebeink.srt, herebeink-poster.png and .jpg,
@@ -25,7 +25,9 @@ const opt = (name, fallback) => {
   const i = argv.indexOf(`--${name}`);
   return i >= 0 && argv[i + 1] !== undefined ? argv[i + 1] : fallback;
 };
-const edl = JSON.parse(readFileSync(resolve(repoRoot, "film/edl.json"), "utf8"));
+const edl = JSON.parse(readFileSync(resolve(repoRoot, opt("edl", "film/edl.json")), "utf8"));
+// A second film (the ladder addendum) names its own outputs; the walk film keeps "herebeink".
+const NAME = edl.name ?? "herebeink";
 const FPS = edl.fps;
 const aspects = opt("aspect", "both") === "both" ? Object.keys(edl.aspects) : [opt("aspect")];
 const check = !argv.includes("--no-check");
@@ -337,7 +339,7 @@ try {
     writeFileSync(list, parts.map((p) => `file '${p}'`).join("\n") + "\n");
     const master = resolve(work, aspect, "master.mp4");
     ff(["-f", "concat", "-safe", "0", "-i", list, "-c", "copy", master], `${aspect} concat`);
-    const film = resolve(outDir, `${only ? "draft" : "herebeink"}-${aspect}.mp4`);
+    const film = resolve(outDir, `${only ? "draft" : NAME}-${aspect}.mp4`);
     ff(["-i", master, "-c:v", "libx264", "-preset", "slow", "-crf", crf, "-pix_fmt", "yuv420p", "-an", "-movflags", "+faststart", film], `${aspect} web encode`);
     console.log(`${aspect}: ${film} (${probeSeconds(film).toFixed(2)} s)`);
 
@@ -345,27 +347,27 @@ try {
     const n = Math.ceil(t / every);
     const cols = aspect === "9x16" ? 8 : 6;
     ff(["-i", film, "-vf", `fps=1/${every},scale=${aspect === "9x16" ? 240 : 384}:-2,tile=${cols}x${Math.ceil(n / cols)}:padding=4:color=white`, "-frames:v", "1",
-      resolve(outDir, `${only ? "draft" : "herebeink"}-contact-${aspect}.png`)], `${aspect} contact sheet`);
+      resolve(outDir, `${only ? "draft" : NAME}-contact-${aspect}.png`)], `${aspect} contact sheet`);
     cues ??= segCues;
   }
 
   if (cues && !only) {
-    writeFileSync(resolve(outDir, "herebeink.vtt"), "WEBVTT\n\n" + cues.map((c, i) => `${i + 1}\n${vttTime(c.start)} --> ${vttTime(c.end)}\n${c.text}\n`).join("\n"));
-    writeFileSync(resolve(outDir, "herebeink.srt"), cues.map((c, i) => `${i + 1}\n${vttTime(c.start).replace(".", ",")} --> ${vttTime(c.end).replace(".", ",")}\n${c.text}\n`).join("\n"));
+    writeFileSync(resolve(outDir, `${NAME}.vtt`), "WEBVTT\n\n" + cues.map((c, i) => `${i + 1}\n${vttTime(c.start)} --> ${vttTime(c.end)}\n${c.text}\n`).join("\n"));
+    writeFileSync(resolve(outDir, `${NAME}.srt`), cues.map((c, i) => `${i + 1}\n${vttTime(c.start).replace(".", ",")} --> ${vttTime(c.end).replace(".", ",")}\n${c.text}\n`).join("\n"));
   }
 
   // The poster and the loop come from the frames, not the cut, so they carry no caption.
   const poster = edl.poster;
   if (poster && !only && aspects.includes("16x9")) {
     const src = resolve(setDir("16x9", poster.set), `${pad(poster.frame)}.png`);
-    ff(["-i", src, "-vf", "scale=1280:720:flags=lanczos", resolve(outDir, "herebeink-poster.png")], "poster");
-    ff(["-i", src, "-vf", "scale=1280:720:flags=lanczos", "-q:v", "2", resolve(outDir, "herebeink-poster.jpg")], "poster jpg");
+    ff(["-i", src, "-vf", "scale=1280:720:flags=lanczos", resolve(outDir, `${NAME}-poster.png`)], "poster");
+    ff(["-i", src, "-vf", "scale=1280:720:flags=lanczos", "-q:v", "2", resolve(outDir, `${NAME}-poster.jpg`)], "poster jpg");
   }
   const loop = edl.loop;
   if (loop && !only && aspects.includes("16x9")) {
     ff(["-framerate", String(FPS), "-start_number", String(loop.from), "-i", resolve(setDir("16x9", loop.set), "%05d.png"), "-frames:v", String(loop.to - loop.from),
       "-vf", "scale=1280:720:flags=lanczos,format=yuv420p", "-c:v", "libx264", "-preset", "slow", "-crf", "20", "-an", "-movflags", "+faststart",
-      resolve(outDir, "herebeink-loop.mp4")], "loop");
+      resolve(outDir, `${NAME}-loop.mp4`)], "loop");
   }
 } finally {
   await browser.close();

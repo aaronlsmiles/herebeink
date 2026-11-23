@@ -1,0 +1,164 @@
+{
+ "_doc": [
+  "The edit list for the Part 2 addendum, cut by web/tools/film-cut.mjs --edl film/edl-ladder.json.",
+  "Stills: the page in ladder mode on the real worlds, one per rung from the start view, settled, in film/frames/stills/<aspect>/ladder-*.png (gitignored).",
+  "Captions: every claim is from LOG.md or THESIS.md (Part 2). No sound until Aaron's own music; stance A: no right or wrong figure."
+ ],
+ "name": "herebeink-ladder",
+ "fps": 24,
+ "title": "Here Be Ink, Part 2",
+ "url": "herebeink.studionephele.com/?ladder=1",
+ "aspects": {
+  "16x9": {
+   "size": [
+    1920,
+    1080
+   ],
+   "frame": [
+    1920,
+    1080
+   ],
+   "at": [
+    0,
+    0
+   ],
+   "page": [
+    1920,
+    1080
+   ],
+   "scale": 1
+  },
+  "9x16": {
+   "size": [
+    1080,
+    1920
+   ],
+   "frame": [
+    1080,
+    1350
+   ],
+   "at": [
+    0,
+    220
+   ],
+   "page": [
+    540,
+    675
+   ],
+   "scale": 2
+  }
+ },
+ "end": {
+  "title": "Here Be Ink, Part 2",
+  "sub": "what moves the line",
+  "credits": [
+   "Worlds generated with World Labs Marble (marble-1.1-plus) through the World API; drawn in ink by the page.",
+   "Measured half: a 360 camera, COLMAP and LichtFeld Studio. Rendered with Spark.",
+   "Studio Nephele"
+  ]
+ },
+ "segments": [
+  {
+   "id": "one",
+   "src": {
+    "still": "ladder-R1",
+    "dur": 7.0
+   },
+   "fadeIn": 0.6,
+   "captions": [
+    {
+     "t0": 0.5,
+     "t1": 3.4,
+     "label": "Part 2",
+     "text": "What moves the line? Marble, shown one photo of my room."
+    },
+    {
+     "t0": 3.6,
+     "t1": 6.8,
+     "label": "1 photo",
+     "text": "Photograph where the photo saw. Everything in ink, Marble made up."
+    }
+   ]
+  },
+  {
+   "id": "four",
+   "src": {
+    "still": "ladder-R4",
+    "dur": 5.5
+   },
+   "captions": [
+    {
+     "t0": 0.3,
+     "t1": 5.3,
+     "label": "4 photos",
+     "text": "Four photos from the same spot. It makes up less of the room."
+    }
+   ]
+  },
+  {
+   "id": "eight",
+   "src": {
+    "still": "ladder-R8",
+    "dur": 5.5
+   },
+   "captions": [
+    {
+     "t0": 0.3,
+     "t1": 5.3,
+     "label": "8 photos",
+     "text": "Eight, laid out by Marble itself. Less again."
+    }
+   ]
+  },
+  {
+   "id": "pano",
+   "src": {
+    "still": "ladder-P",
+    "dur": 7.0
+   },
+   "captions": [
+    {
+     "t0": 0.3,
+     "t1": 3.4,
+     "label": "The 360 still",
+     "text": "Shown the whole room, it keeps the most."
+    },
+    {
+     "t0": 3.6,
+     "t1": 6.8,
+     "label": "The 360 still",
+     "text": "Where even this turns to ink, the world and my scan disagree, often through the scan's own error."
+    }
+   ]
+  },
+  {
+   "id": "red",
+   "src": {
+    "still": "ladder-R4-red",
+    "dur": 7.5
+   },
+   "captions": [
+    {
+     "t0": 0.3,
+     "t1": 3.6,
+     "label": "Red pen",
+     "text": "Red marks invention that lands away from the room."
+    },
+    {
+     "t0": 3.8,
+     "t1": 7.3,
+     "label": "Red pen",
+     "text": "More photos shrink what Marble makes up. They don't make what it makes up true."
+    }
+   ]
+  },
+  {
+   "id": "end",
+   "src": {
+    "card": "end",
+    "dur": 5.0
+   },
+   "fadeOut": 0.8
+  }
+ ]
+}
