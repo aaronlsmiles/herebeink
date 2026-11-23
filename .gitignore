@@ -44,3 +44,4 @@ web/test-results/
 
 # the viewer's synthetic fixture is committed so the web tests run offline
 !web/public/fixture/*.spz
+!web/public/fixture-ladder/*/*.spz
