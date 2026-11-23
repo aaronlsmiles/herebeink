@@ -153,6 +153,11 @@ The first real material: one sitting in a narrow room with a high ceiling and ba
 - **Shipped:** media v3 on the media host (v1 and v2 untouched), the page pointed at it and deployed; the live checks pass and the console is clean. The plain words now say "about four in every hundred" (3.8 %), and THESIS carries both splits. The film keeps the v2 look and was not re-cut.
 - **Left:** a faint grey smudge at the foot of the left jamb, on the frame's side of the seal.
 
+## 23 Nov — Part 2, R8: eight photos
+
+- **Generated:** R8, all eight 66° photos at 45° steps, in reconstruction mode (the mode where Marble lays the photos out itself and may ignore the azimuths). 1,600 credits; balance 11,420.
+- **Placed, on every check.** Marble's front lands 0.9° from the door and the eight photos read back in the order sent (0.856 against 0.635 reversed), so reconstruction mode kept our layout. Residual 2.8 cm inside the views, 2.4° off level, colour well clear of any other pose (0.855 against 0.617). Inside the views Marble sits a median 8 cm nearer the camera than the key and 11 cm nearer than COLMAP's own points, with about half of directions within 15 cm of either: the closest agreement with COLMAP of the three rungs so far (R1 24 %, R4 31 %, R8 52 %).
+
 ## 22 Nov — Part 2, R4: four photos
 
 - **The misread check first (hub call 98).** Frozen KR4 re-runs R4 once only if Marble read the four directions back to front. How to read that was fixed before R4 existed: Marble's placed world is drawn into each of the four cameras and compared with each of the four photos, and the best of the eight ways to lay them round the circle is kept. On Part 1's 360 world it reads the photos in the order sent; with the side photos swapped on purpose it calls them reversed.

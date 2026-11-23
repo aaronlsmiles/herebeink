@@ -78,6 +78,7 @@ x: the share of all directions each rung's inputs showed. y: the share of V's di
 | L1 | 22 Nov | Part 2, R1: one flat photo facing the door (`marble-1.1-plus`, seed 1; world `dff477c0`) | Generated, 1,580 credits; Gate A failed on the colour check: the search chose a mirrored pose (2.4° off level, residual 6.76 cm); Part 1's own start (yaw 0, not mirrored) fits better (two-way 15.9 against 26.6 cm, release 0.010 m) but sits 15° off level at 0.72 of Marble's stated scale. Drawn inside the photo's view only, neither pose puts Marble's door wall on the real one: Marble's surfaces sit a median 0.72 to 0.78 m in front of the key, 19 to 33 % of directions within 0.15 m; both fits shrank Marble's world to 0.72 of its stated scale. **Not placed** (KR2), no overrule (hub call 95) | Not placed | £1.01 |
 | L1′ | 22 Nov | R1 re-placed under Amendment 2 (prototype `fd46090`, `c0c3213`): yaw 0 not mirrored, scale 1.13 × the metric factor, gravity 4.5°, release 0.042 m, residual 3.82 cm; in view against the key −0.04 m (60 % within 0.15 m), against COLMAP −0.43 m (24 %), about half of that the key's own error | Gate A passed by eye on the colour margin alone (0.055 against its mirror), on the four grounds (Aaron, hub call 97) | Placed | £0 |
 | L2 | 22 Nov | Part 2, R4: four flat photos at azimuths 0, 90, 180, 270 (`marble-1.1-plus`, seed 1; world `2e423da6`) | Generated, 1,600 credits. Gate A passed on every check: yaw 330 not mirrored (raw forward 357.9° from the door), scale 1.165 × the metric factor, gravity 6.5°, release 0.038 m, residual 3.27 cm over R4's frustums (92 % of the 675,503 inside within 1 m), colour 0.751 against 0.580 for its mirror (margin 0.171). KR4: not a misread (start not mirrored; the four photos read in the order sent, mean correlation 0.758 against 0.672 for the best reversed layout; hub call 98). In view against the key −0.01 m (40 % within 0.15 m), against COLMAP −0.07 m (31 %) | Placed | £1.02 |
+| L3 | 23 Nov | Part 2, R8: eight flat photos at 45° steps, reconstruction mode (`marble-1.1-plus`, seed 1; world `7bce8b02`) | Generated, 1,600 credits. Gate A passed on every check: yaw 0 not mirrored (raw forward 0.9° from the door, so reconstruction mode kept the azimuths' layout), scale 0.893 × the metric factor, gravity 2.4°, release 0.062 m, residual 2.81 cm over R8's frustums (98 % of the 907,570 inside within 1 m), colour 0.855 against 0.617 for the next pose (margin 0.238). View order (recorded; KR4 re-runs only R4): the eight photos read in the order sent, 0.856 against 0.635 reversed. In view against the key −0.08 m (54 % within 0.15 m), against COLMAP −0.11 m (52 %) | Placed | £1.02 |
 
 ## Run log
 | Date | Task | From | To | Why |
@@ -113,7 +114,7 @@ x: the share of all directions each rung's inputs showed. y: the share of V's di
 - Not yet known: the cost on the phone, WebXR, and how soft silhouettes are on a real room.
 
 ## Spend
-- Part 2: R1 1,580 credits ($1.26, about £1.01 at the guard's £0.80 per $); R4 1,600 credits ($1.28, about £1.02); balance 13,020 (22 Nov).
+- Part 2: R1 1,580 credits ($1.26, about £1.01 at the guard's £0.80 per $); R4 1,600 credits ($1.28, about £1.02); R8 1,600 credits (about £1.02); balance 11,420 (23 Nov).
 - Part 1: £0 spent on calls.
 - About £8 of Marble credits bought (Gate M); balance 13,250 credits on 18 Nov.
 - GPU rental: £0 of the £6 cap.

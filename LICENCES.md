@@ -56,6 +56,7 @@ How this project words its residual: the alignment residual is the quality of th
 | 2026-11-20 | 9f68512c-ac97-4fe4-87d2-b27d936620cc | marble-1.1-plus | 1500.0 | TOS 21 Jan 2026; rewrite dated 11.10.26 noted |
 | 2026-11-22 | dff477c0-0d6e-4a2e-99e1-cfff3c1652df | marble-1.1-plus | 1580.0 | TOS 21 Jan 2026; rewrite dated 11.10.26 noted |
 | 2026-11-22 | 2e423da6-ab61-4eb3-9550-e600b9b71545 | marble-1.1-plus | 1600.0 | TOS 21 Jan 2026; rewrite dated 11.10.26 noted |
+| 2026-11-23 | 7bce8b02-f36e-4844-b2c8-203954aa039e | marble-1.1-plus | 1600.0 | TOS 21 Jan 2026; rewrite dated 11.10.26 noted |
 
 ## Third-party software and fonts
 
