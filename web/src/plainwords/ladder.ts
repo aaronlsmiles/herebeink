@@ -18,6 +18,7 @@ export const LADDER_NOTES = {
   redPen: [
     "Turn on \"Red pen\" and the made-up parts that ended up in the wrong place turn red, like a teacher marking homework.",
     "The black ink parts are made up too. Where the page could check them, they landed where my real room is.",
+    "My scan of the room is not perfect either. A red mark can be where my scan went wrong, not Marble. Even the world that saw the whole room gets red marks.",
   ],
   /** Above the chart. */
   chart: [

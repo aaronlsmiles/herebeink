@@ -24,6 +24,7 @@ import export
 import grid2d
 import ladder
 import ladder_views as lv
+import schema_check
 import spz
 import splats
 import visibility as vis
@@ -132,6 +133,7 @@ def build(work: Path, out: Path, now: datetime | None = None) -> dict:
     doc = {"schemaVersion": 1, "units": "m", "generatedAt": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
            "camera": {"c": [round(float(x), 4) for x in pose.c_world]},
            "steps": [r for r in STEPS if any(e["id"] == r for e in rungs)], "rungs": rungs, "credit": export.CREDIT}
+    schema_check.check(doc, "ladder.schema.json")
     (out / "ladder.json").write_text(json.dumps(doc, indent=1, allow_nan=False) + "\n")
     items = []
     for p in sorted(out.rglob("*")):

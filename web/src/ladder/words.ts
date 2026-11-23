@@ -10,7 +10,7 @@ export const LADDER = {
   heading: "What Marble saw",
   stepsLabel: "How much of the room Marble was shown",
   redPen: "Red pen",
-  redPenTitle: "Mark in red the imagined parts that landed wrong",
+  redPenTitle: "Mark in red the imagined parts that land away from where the scan puts the room. The scan is unsure in places too, so red can be its error, not Marble's",
   loading: (label: string) => `Loading ${label}…`,
   failed: "This world did not arrive. Try another step.",
   notPlaced: "Not placed",
@@ -76,7 +76,7 @@ export const LEGEND = {
   heading: "The ladder's key",
   seen: ["Seen", "shown to Marble, and kept where the room is"],
   imagined: ["Imagined", "made up beyond the photos"],
-  wrong: ["Imagined and wrong", "made up, and not where the room is (with the red pen on)"],
+  wrong: ["Imagined and wrong", "made up, and away from where the scan puts the room (with the red pen on); where the scan is unsure, red can be the scan's error"],
   frames: ["Photo frames", "what each photo showed, from where it was taken"],
   line: ["Pen line", "where the seen floor ends"],
 } as const;
