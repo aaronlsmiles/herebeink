@@ -61,6 +61,15 @@ How this project words its residual: the alignment residual is the quality of th
 | 2026-11-23 | c4bda756-c9b8-4636-8c37-cf27f25a1ba9 | marble-1.1-plus | 1600.0 | TOS 21 Jan 2026; rewrite dated 11.10.26 noted |
 | 2026-11-23 | 762513d0-0387-4d9e-a38e-aba3a334e92d | marble-1.1-plus | 1600.0 | TOS 21 Jan 2026; rewrite dated 11.10.26 noted |
 
+## The films' scores (Suno)
+
+Both films carry a score made with Suno on Aaron's Pro plan and downloaded within its monthly allocation, which is what grants commercial use under Suno's Terms (last revised 10 Aug 2026, effective 3 Sep 2026; saved in the studio hub's `reference/suno/`). Each is trimmed and level-matched under its film and credited on the end card ("Score made with Suno."). The audio files are not in this repo.
+
+| Film | Suno clip | Downloaded | Use |
+|---|---|---|---|
+| The walk (`herebeink/film/v2/`) | 9c88a172-3105-467d-8443-0d1f25e47369 ("P50-SCORE-WALK", take 2) | 2026-11-23, wav | 0–78.3 s, 1 s fade in, 2.5 s fade out, -14 LUFS |
+| Part 2 (`herebeink/film/ladder-v2/`) | 3be65b5c-8637-4a6a-bb3b-6025c1ba387c ("P50-SCORE-LADDER", take 1) | 2026-11-23, wav | 0–37.5 s, 1 s fade in, 2.5 s fade out, -14 LUFS |
+
 ## Third-party software and fonts
 
 | Component | Licence | Use here |

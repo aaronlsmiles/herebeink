@@ -65,3 +65,11 @@ Every published media object (splats, previews, film), immutable once listed, wi
 | herebeink/film/ladder-v1/herebeink-ladder-9x16.mp4 | 0031571fe81cd2c7c8875cffab61ff350612cbe2dca7c21efb55a44c09bcec54 | 2365909 | 2026-11-23 |
 | herebeink/film/ladder-v1/herebeink-ladder.srt | 7053cf6816b610f019f26608ee7bd9048cb40e0a63dd705835473be845d0a52c | 765 | 2026-11-23 |
 | herebeink/film/ladder-v1/herebeink-ladder.vtt | b9fbe7648e84e51ffddf93e2d39baa098526782c1ab3879e4c5ba8321605c2bb | 773 | 2026-11-23 |
+| herebeink/film/ladder-v2/herebeink-ladder-16x9.mp4 | ca1dc58babcbf7d33a76c883bc8484fa80d7a0181879b1bff8a38c9b55fe06ff | 5748706 | 2026-11-23 |
+| herebeink/film/ladder-v2/herebeink-ladder-9x16.mp4 | 77eb17fd7c60f08c55aec0b8dc0f442c99a877556c4a3476dbe473a9ef95a609 | 3288944 | 2026-11-23 |
+| herebeink/film/ladder-v2/herebeink-ladder.srt | 7053cf6816b610f019f26608ee7bd9048cb40e0a63dd705835473be845d0a52c | 765 | 2026-11-23 |
+| herebeink/film/ladder-v2/herebeink-ladder.vtt | b9fbe7648e84e51ffddf93e2d39baa098526782c1ab3879e4c5ba8321605c2bb | 773 | 2026-11-23 |
+| herebeink/film/v2/herebeink-16x9.mp4 | 6bc51a4dfd54e55c0b9692a3f344cbdd43550916c6b6adfad80182babd3d704e | 51041638 | 2026-11-23 |
+| herebeink/film/v2/herebeink-9x16.mp4 | 521f015ac0212c475146431494656af1a8ef74d29276b4e8359c98ee79b3cd4b | 57909058 | 2026-11-23 |
+| herebeink/film/v2/herebeink.srt | ccec4ba92b8b16ab71538dcb6b08815bef2b60fa365ad30f135b370d3afb6cff | 1426 | 2026-11-23 |
+| herebeink/film/v2/herebeink.vtt | b0661779eab3fc7badcb5d17ad7cc34302e84734dd5a9e3384f7970a8ba193b2 | 1434 | 2026-11-23 |

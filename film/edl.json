@@ -5,7 +5,7 @@
   "still and seq: page shots from web/tools/film-shots.mjs in film/frames/stills/<aspect>/ (a PNG, or a folder of numbered PNGs).",
   "wipe: two frame sets of one camera path (ink and ?ink=off); the divider is the share of the width showing b, moving from 'from' to 'to' between t0 and t1.",
   "Captions: t0 and t1 in seconds from the segment's start; 'label' is the small line above the words. Every claim is from LOG.md or THESIS.md.",
-  "No sound: the film has no audio track until Aaron's own music (film/README.md)."
+  "Sound: a score made with Suno (film/README.md, Music), laid under the cut after it."
  ],
  "fps": 24,
  "title": "Here Be Ink",
@@ -65,6 +65,7 @@
   "credits": [
    "Imagined half generated with World Labs Marble (marble-1.1-plus) through the World API; drawn in ink by the page.",
    "Measured half: a 360 camera, COLMAP and LichtFeld Studio. Rendered with Spark.",
+   "Score made with Suno.",
    "Studio Nephele"
   ]
  }

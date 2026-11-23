@@ -1,6 +1,6 @@
 # The film
 
-A 78-second walk through the page, cut in 16:9 (1920 × 1080) and 9:16 (1080 × 1920) at 24 fps. Captions carry the story: burned in, and as `herebeink.vtt` and `herebeink.srt` beside the video. **There is no audio track.** Aaron's own music goes in later (below); nothing third-party, no narration.
+A 78-second walk through the page, cut in 16:9 (1920 × 1080) and 9:16 (1080 × 1920) at 24 fps. Captions carry the story: burned in, and as `herebeink.vtt` and `herebeink.srt` beside the video. v1 (22 Nov) has no audio track; v2 (23 Nov) carries a score made with Suno, on Aaron's word, credited on the end card (below, Music; LICENCES.md). No narration.
 
 Frames, page shots and exports are gitignored (`film/frames/`, `film/out/`). What is committed: the camera paths (`paths.json`), the edit list (`edl.json`), the tools in `web/tools/` and `web/vite/film-scene.ts`, and `make-film.sh`.
 
@@ -73,9 +73,9 @@ The edit list carries a segment `headset` between the look back and the map, mar
 2. Check the caption in `edl.json` (segment `headset`) says what the clip shows.
 3. Re-cut without dumping again: `cd web && node tools/film-cut.mjs`. Every later segment, the VTT and the SRT move by the clip's length.
 
-## Music (Aaron's own, later)
+## Music
 
-The film is cut silent on purpose. To lay a track under the finished cut, normalised for the web:
+The cut is silent; the score is laid under it afterwards. Since 23 Nov both films carry a score made with Suno (Aaron: "Use Suno and make some"), downloaded within the Pro allocation, kept out of git in `film/music/` (`*.wav` is ignored), and published as `herebeink/film/v2/` and `herebeink/film/ladder-v2/` (MEDIA.md). The end cards credit "Score made with Suno." (`edl.json`, `edl-ladder.json`). To lay a track under a finished cut, normalised for the web:
 
 ```bash
 ffmpeg -i film/out/herebeink-16x9.mp4 -i music.wav -map 0:v -map 1:a -c:v copy \

@@ -2,7 +2,7 @@
  "_doc": [
   "The edit list for the Part 2 addendum, cut by web/tools/film-cut.mjs --edl film/edl-ladder.json.",
   "Stills: the page in ladder mode on the real worlds, one per rung from the start view, settled, in film/frames/stills/<aspect>/ladder-*.png (gitignored).",
-  "Captions: every claim is from LOG.md or THESIS.md (Part 2). No sound until Aaron's own music; stance A: no right or wrong figure."
+  "Captions: every claim is from LOG.md or THESIS.md (Part 2). Sound: a score made with Suno, laid under the cut after it; stance A: no right or wrong figure."
  ],
  "name": "herebeink-ladder",
  "fps": 24,
@@ -54,6 +54,7 @@
   "credits": [
    "Worlds generated with World Labs Marble (marble-1.1-plus) through the World API; drawn in ink by the page.",
    "Measured half: a 360 camera, COLMAP and LichtFeld Studio. Rendered with Spark.",
+   "Score made with Suno.",
    "Studio Nephele"
   ]
  },
