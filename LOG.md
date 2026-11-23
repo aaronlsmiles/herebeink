@@ -153,6 +153,12 @@ The first real material: one sitting in a narrow room with a high ceiling and ba
 - **Shipped:** media v3 on the media host (v1 and v2 untouched), the page pointed at it and deployed; the live checks pass and the console is clean. The plain words now say "about four in every hundred" (3.8 %), and THESIS carries both splits. The film keeps the v2 look and was not re-cut.
 - **Left:** a faint grey smudge at the foot of the left jamb, on the frame's side of the seal.
 
+## 23 Nov — Part 2, the R4 repeat
+
+- **Generated:** the same four photos as R4 with seed 2, to see how much two runs differ. 1,600 credits; balance 6,620.
+- **Placed, on every check**, almost exactly where R4 landed (front 357.1° against 357.9°, scale 1.125 against 1.165 of Marble's stated factor), photos in the order sent.
+- **Run-to-run spread (KR3):** the share of the room each seed's world imagines differs by under one percentage point, against about thirteen points between R4 and R8. The ladder's steps are bigger than the noise between two runs.
+
 ## 23 Nov — Part 2, R2: two photos
 
 - **Generated:** R2, the photo facing the door and the one facing away, in one request. 1,600 credits; balance 8,220.
