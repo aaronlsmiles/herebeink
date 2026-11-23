@@ -399,6 +399,22 @@ def pose_angle(a: np.ndarray, b: np.ndarray) -> float:
     return float(np.degrees(Rotation.from_matrix(ra.T @ rb).magnitude()))
 
 
+def runner_up(table: list, chosen: dict, t: np.ndarray):
+    """The photometric runner-up: the best-looking pose that is a different answer from the chosen one, as
+    (score, entry), or None. The chosen pose is scored fitted, so a rival is too wherever the search fitted it
+    and the fit drew colour; otherwise its start score stands (hub call 106, Amendment 3)."""
+    rivals = []
+    for e in table:
+        if e is chosen:
+            continue
+        if pose_angle(e.get("t", e["t0"]), t) < SAME_POSE_DEG:
+            continue
+        s = e.get("photo") if e.get("photo") is not None else e.get("photoBefore")
+        if s is not None:
+            rivals.append((s, e))
+    return max(rivals, key=lambda r: r[0]) if rivals else None
+
+
 def sample(n: int, k: int, seed: int = 0) -> np.ndarray:
     return np.arange(n) if n <= k else np.sort(np.random.default_rng(seed).choice(n, k, replace=False))
 
@@ -484,18 +500,7 @@ def search(measured_world: np.ndarray, marble_raw: np.ndarray, world_from_colmap
         chosen = min(near_ties, key=lambda e: far(e["twoWayCm"]))
     t = chosen["t"]
 
-    # photometric runner-up: the best-looking pose that is a different answer from the chosen one
-    rivals = []
-    for e in table:
-        if e is chosen:
-            continue
-        pose = e.get("t", e["t0"])
-        if pose_angle(pose, t) < SAME_POSE_DEG:
-            continue
-        s = [x for x in (e["photoBefore"], e.get("photo")) if x is not None]
-        if s:
-            rivals.append((max(s), e))
-    runner = max(rivals, key=lambda r: r[0]) if rivals else None
+    runner = runner_up(table, chosen, t)
     if not photo_ok:
         photometric_out = {"score": None, "runnerUp": None, "reason": "no pano views on disk or no colours in the Marble file"}
     elif chosen.get("photo") is None:
