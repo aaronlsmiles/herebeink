@@ -153,6 +153,14 @@ The first real material: one sitting in a narrow room with a high ceiling and ba
 - **Shipped:** media v3 on the media host (v1 and v2 untouched), the page pointed at it and deployed; the live checks pass and the console is clean. The plain words now say "about four in every hundred" (3.8 %), and THESIS carries both splits. The film keeps the v2 look and was not re-cut.
 - **Left:** a faint grey smudge at the foot of the left jamb, on the frame's side of the seal.
 
+## 23 Nov — Part 2: what the ladder found
+
+- **R4r, the last world**, R4's four photos in reconstruction mode, was not placed: Marble built it about 13 cm away from the camera point the photos were taken from, and colour could not tell it from its mirror image. Reconstruction mode wants photos that overlap; these had 24° gaps. Generation is finished: six worlds, four placed (one photo, four photos twice, eight photos), two not (two photos, and R4r), plus Part 1's 360 world.
+- **The more Marble is shown, the less it invents.** Of the room's directions the scan can score, the one-photo world invents 96 %, the four-photo worlds 85 % (the two seeds within a point of each other), the eight-photo world 72 %, and the 360 world 46 %.
+- **But the floor is the scan, not the model.** The 360 world was shown every direction, yet in almost half of them its surface sits more than 15 cm from the answer key. Looked at direction by direction, most of those are where the trained splat that makes the key is itself weakest (big, loosely pinned splats; the key agrees with COLMAP's own points in about two thirds of the view). So the instrument cannot see a perfect world as perfect, which the frozen reference line already said; the steps between rungs are what it can read.
+- **What Marble invents mostly does not land on the room.** For every placed flat rung, only a minority of the invented directions fall within 15 cm of the real room; loosen that to 30 cm and it is about half for one and four photos. Four photos did not turn Marble's guesses mostly right, which the guess recorded before generation expected. Eight photos invent less, but what they still invent (above and below their one band of views) lands right less often, and they fill the unseen room no better than four did.
+- **The recorded guess, read after the numbers were written:** right about the one-photo world (mostly wrong), wrong about four photos (it expected most of the invention to land right), half right about eight, and wrong about how close the 360 world would come.
+
 ## 23 Nov — Part 2, the R4 repeat
 
 - **Generated:** the same four photos as R4 with seed 2, to see how much two runs differ. 1,600 credits; balance 6,620.
