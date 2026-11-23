@@ -30,7 +30,19 @@ Second, "measured" has to be recorded when the capture is made; it cannot be rea
 
 Third, on a phone the cost follows the splats drawn, not the splats loaded. On an iPhone 15 Pro the full room missed the 33 ms bar; capped at 200,000 splats drawn, the start view runs at 25 ms. Close views cost more, and the phone criterion, fixed before the capture, is read at the start view.
 
-Part 2, under way, asks what moves the line: Marble shown one photo of the room, then two, four and eight, each set cut from the same 360 still and holding the one before, and last the 360 still itself; one model against itself on one room, before World Labs ends Marble on 8 January 2027.
+Part 2 asks what moves the line; its answer is the next section.
+
+## Part 2: what moves the line
+
+Part 1 drew one border. Part 2 asks what moves it. Marble was shown one photo of the room, then two, four and eight, each set cut from the same 360 still and holding the one before, and last the 360 still itself: one model against itself, one room, one camera point, before World Labs ends Marble on 8 January 2027. Each world was placed against the scan using only what its photos showed, and then every direction from the camera point was sorted: seen or imagined, and, where the scan says what is there, imagined right or imagined wrong.
+
+Two worlds could not be placed. Two photos of two plain end walls could not tell the right pose by colour from one turned a quarter round, and the rule written before any world existed lets a look overrule that only against a mirror image; so it stands as not placed. The same four photos in Marble's reconstruction mode, which wants photos that overlap, built its world 13 cm from where they were taken.
+
+Of the worlds that were placed, the share of the room each one invents falls as it is shown more: 96 % from one photo, 85 % from four (two runs, a point apart), 72 % from eight, and 46 % for the 360 still, which was shown everything. That last figure is the instrument, not the model: in almost half its directions even the full world sits more than 15 cm from the scan, mostly where the scan itself is weakest. The ladder's steps are real; its floor is the scan.
+
+What Marble invents mostly does not land where the room is. From one photo or four, about half of it falls within 30 cm of the real surface, and a minority within 15 cm. Eight photos invent less, but what they still invent, above and below their one band of views, lands right less often. Before any world existed I guessed that four photos would make most of the invention right. They did not.
+
+These are this room's worlds, one camera point, one or two runs each; they are not a measure of Marble. Within that, the finding is plain: showing a model more of a room shrinks what it invents, but it does not make what it still invents true. The ink on the far side of the coastline should be read as a guess at every rung short of the full sphere. The page's ladder lets you step through it: seen in photograph, invented in ink, and, with the red pen on, the invention the scan contradicts.
 
 ## Numbers
 
@@ -44,6 +56,8 @@ Part 2, under way, asks what moves the line: Marble shown one photo of the room,
 - Outlines: 2 CSS px, measured 1.90 to 2.11 (STATUS, Gate S1).
 - Design pass: the ink judged at five views against the plain filter; verdict filter, before and after one pass on the pen rules (hatch spacing 3 to 4 cm) (LOG, round 3).
 - Marble: two drafts and two worlds, 3,300 credits ($2.64) (LOG, round 1).
+- Part 2, the ladder: six worlds, 9,580 credits (about £6.13); four placed (one photo; four photos, two seeds; eight photos), two not (two photos; four photos in reconstruction mode) (LOG, 22–23 Nov).
+- Part 2, imagined share of the directions the scan can score, at 15 cm: one photo 95.6 %, four photos 85.5 % and 84.6 %, eight photos 72.4 %, the 360 still 46.4 %; the scan agrees with COLMAP's own points within 15 cm in 38 %, 61 %, 67 % and 66 % of those views (LOG and STATUS, 23 Nov).
 
 ## One honest limitation
 
