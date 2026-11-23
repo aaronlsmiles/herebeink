@@ -74,10 +74,30 @@ def yaw_towards(d: np.ndarray) -> float:
     return float(np.degrees(np.arctan2(-d[0], -d[2])))
 
 
-def film_path(start: dict, door: dict, eye: float) -> list[dict]:
+# How far past the door the film turns round: the full distance when nothing is in the way, otherwise the clearance
+# short of the first Marble splat within the corridor about its walk line at eye height, never under the minimum.
+FILM_PAST_M = 1.2
+FILM_CLEARANCE_M = 0.25
+FILM_MIN_PAST_M = 0.4
+FILM_CORRIDOR_M = 0.2
+
+
+def turn_distance(centre: np.ndarray, out: np.ndarray, eye: float, marble_centres: np.ndarray) -> float:
+    rel = np.asarray(marble_centres, float).reshape(-1, 3) - np.array([centre[0], eye, centre[2]])
+    along = rel @ out
+    aside = np.linalg.norm(rel - np.outer(along, out), axis=1)
+    hits = along[(along > 0) & (aside < FILM_CORRIDOR_M)]
+    if not len(hits):
+        return FILM_PAST_M
+    return float(np.clip(hits.min() - FILM_CLEARANCE_M, FILM_MIN_PAST_M, FILM_PAST_M))
+
+
+def film_path(start: dict, door: dict, eye: float, marble_centres: np.ndarray) -> list[dict]:
+    """The film walks to the door, through it and turns round, short of the first Marble splat on its walk line:
+    a turn inside the splats looks back at blank paper."""
     centre, out = np.array(door["centre"]), np.array(door["outward"])
     before = centre - 0.8 * out
-    past = centre + 1.2 * out
+    past = centre + turn_distance(centre, out, eye, marble_centres) * out
     ahead = yaw_towards(out)
     back = yaw_towards(-out)
     at = lambda p: [round(float(p[0]), 3), eye, round(float(p[2]), 3)]  # noqa: E731
@@ -220,6 +240,8 @@ def export(work: Path, world_id: str, out: Path, prefix: str, media_md: Path | N
     schema_check.check(coast, "coastline.schema.json")
     door = scale["door"]
     res = align["residual"]
+    marble_world = np.concatenate([splats.apply(np.array(align["world_from_marble"]), splats.centres(splats.read(prov / f"{k}.ply", quiet=True)))
+                                   for k in ("overlap", "imagined")])
     scene = {
         "schemaVersion": 1,
         "schemaMinor": SCHEMA_MINOR,
@@ -240,7 +262,7 @@ def export(work: Path, world_id: str, out: Path, prefix: str, media_md: Path | N
         "door": {"centre": [round(float(x), 4) for x in door["centre"]],
                  "widthM": round(float(np.linalg.norm(np.array(door["a"]) - np.array(door["b"]))), 4),
                  "outward": [round(float(x), 6) for x in door["outward"]]},
-        "filmPath": film_path(scale["start"], door, scale["eye_height_m"]),
+        "filmPath": film_path(scale["start"], door, scale["eye_height_m"], marble_world),
         "light": {"direction": light_direction(door)},
         "coastline": {"url": "coastline.json", "sha256": sha256(out / "coastline.json"),
                       "bytes": (out / "coastline.json").stat().st_size, "stretches": len(coast["polylines"]),

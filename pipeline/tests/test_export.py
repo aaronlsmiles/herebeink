@@ -124,6 +124,54 @@ def test_start_film_and_light(exported):
     assert np.linalg.norm(d) == pytest.approx(1) and d[1] < 0 and d[0] < 0
 
 
+FILM_DOOR = {"centre": [1.0, 0.0, 0.0], "outward": [1.0, 0.0, 0.0]}
+FILM_START = {"position": [-1.0, 1.6, 0.0], "yawDeg": -90.0}
+
+
+def turn_past_door(path):
+    """How far past the door the film turns round (its third and fourth points share the turn position)."""
+    assert path[2]["position"] == path[3]["position"]
+    return path[2]["position"][0] - FILM_DOOR["centre"][0]
+
+
+def test_with_nothing_in_the_way_the_film_turns_the_full_distance_past_the_door():
+    path = export.film_path(FILM_START, FILM_DOOR, 1.6, np.zeros((0, 3)))
+    assert turn_past_door(path) == pytest.approx(export.FILM_PAST_M)
+
+
+def test_the_film_turns_short_of_a_marble_splat_on_its_walk_line():
+    # the real room: Marble's splats begin 1.07 m past the door, so the turn falls at 0.82 m
+    blocker = np.array([[1.0 + 1.07, 1.6, 0.05]])
+    path = export.film_path(FILM_START, FILM_DOOR, 1.6, blocker)
+    assert turn_past_door(path) == pytest.approx(1.07 - export.FILM_CLEARANCE_M, abs=1e-3)
+
+
+def test_splats_off_the_walk_line_or_behind_the_door_do_not_move_the_turn():
+    aside = [1.0 + 0.6, 1.6, export.FILM_CORRIDOR_M + 0.1]
+    below = [1.0 + 0.6, 1.6 - export.FILM_CORRIDOR_M - 0.1, 0.0]
+    behind = [1.0 - 0.3, 1.6, 0.0]
+    path = export.film_path(FILM_START, FILM_DOOR, 1.6, np.array([aside, below, behind]))
+    assert turn_past_door(path) == pytest.approx(export.FILM_PAST_M)
+
+
+def test_the_film_never_turns_closer_than_the_minimum_past_the_door():
+    path = export.film_path(FILM_START, FILM_DOOR, 1.6, np.array([[1.0 + 0.3, 1.6, 0.0]]))
+    assert turn_past_door(path) == pytest.approx(export.FILM_MIN_PAST_M)
+
+
+def test_the_exported_film_turns_in_open_space(exported):
+    work, scene, _ = exported
+    turn = np.array(scene["filmPath"][2]["position"])
+    world_from_marble = np.array(json.loads((work / "align" / "synthworld" / "align.json").read_text())["world_from_marble"])
+    for name in ("imagined", "overlap"):
+        ply = splats.read(work / "provenance" / "synthworld" / f"{name}.ply", quiet=True)
+        centres = splats.apply(world_from_marble, splats.centres(ply))
+        past = (turn - np.array(scene["door"]["centre"])) @ np.array(scene["door"]["outward"])
+        if past > export.FILM_MIN_PAST_M + 1e-3:
+            near = np.linalg.norm(centres - turn, axis=1) < export.FILM_CLEARANCE_M - 1e-3
+            assert not near.any(), f"{near.sum()} {name} splats within the clearance of the turn point"
+
+
 def test_preview_prefers_opaque_splats(tmp_path):
     rng = np.random.default_rng(0)
     n = 2000
