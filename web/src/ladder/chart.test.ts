@@ -44,7 +44,8 @@ describe("the ladder's chart", () => {
   it("keeps labels apart and inside the sheet", () => {
     const m = chartModel(ladder(), null);
     const r4 = m.points.find((p) => p.id === "R4")!, r4b = m.points.find((p) => p.id === "R4b")!;
-    expect(r4.anchor !== r4b.anchor || Math.abs(r4.ly - r4b.ly) >= 10).toBe(true);
+    if (r4.label && r4b.label) expect(r4.anchor !== r4b.anchor || Math.abs(r4.ly - r4b.ly) >= 10).toBe(true);
+    else expect([r4.label, r4b.label]).toEqual(["4 (two seeds)", ""]);
     const p = m.points.find((q) => q.id === "P")!;
     expect(p.anchor).toBe("end");
     for (const q of m.points) expect(q.lx).toBeLessThanOrEqual(CHART_BOX.width);
@@ -56,4 +57,16 @@ describe("the ladder's chart", () => {
     expect(svg).toMatch(/shown 7\.7%, imagined/);
     expect(svg).toMatch(/agrees with itself in 31% of this view/);
   });
+});
+
+it("two R4 seeds that nearly coincide share one label", () => {
+  const l = ladder();
+  const r4 = l.rungs.find((r) => r.id === "R4")!;
+  const r4b = l.rungs.find((r) => r.id === "R4b");
+  if (!r4b) return;
+  r4b.imagined = r4.imagined;
+  r4b.shown = r4.shown;
+  const pts = chartModel(l, null).points;
+  expect(pts.find((p) => p.id === "R4")!.label).toBe("4 (two seeds)");
+  expect(pts.find((p) => p.id === "R4b")!.label).toBe("");
 });

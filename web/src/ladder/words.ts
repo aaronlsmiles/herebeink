@@ -30,6 +30,9 @@ export const POINT_LABEL: Record<RungId, string> = {
   R1: "1", R2: "2", R4: "4", R4b: "4 (seed 2)", R8: "8", R4r: "4 (rec.)", P: "360",
 };
 
+/** One label for both R4 seeds when their points nearly coincide. */
+export const POINT_LABEL_BOTH_SEEDS = "4 (two seeds)";
+
 /** The two rungs whose points rest on the scan's least certain part (frozen in STATUS: the chart's caption says so). */
 export const SCAN_READING: readonly RungId[] = ["R1", "R2"];
 

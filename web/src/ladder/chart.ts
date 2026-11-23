@@ -2,7 +2,7 @@
 // showed, y the share of the room's directions where its world is imagined. Its inputs carry no right or
 // wrong figure at all, so the chart cannot show one (stance A).
 import type { Ladder, LadderRung, RungId } from "./contract.ts";
-import { CHART, LADDER, POINT_LABEL, pointTitle, SCAN_READING } from "./words.ts";
+import { CHART, LADDER, POINT_LABEL, POINT_LABEL_BOTH_SEEDS, pointTitle, SCAN_READING } from "./words.ts";
 
 export const CHART_BOX = { width: 300, height: 214, left: 44, right: 286, top: 14, bottom: 172 } as const;
 const LABEL_H = 11;
@@ -47,11 +47,14 @@ function placeLabels(pts: Omit<ChartPoint, "anchor" | "lx" | "ly">[]): ChartPoin
   const taken: Box[] = pts.map((p) => ({ x0: p.px - 4, x1: p.px + 4, y0: p.py - 4, y1: p.py + 4 }));
   const placed: ChartPoint[] = [];
   for (const p of [...pts].sort((a, b) => a.px - b.px || b.py - a.py)) {
+    if (!p.label) { placed.push({ ...p, anchor: "start", lx: p.px, ly: p.py }); continue; }
     const w = p.label.length * CHAR_W + (p.footnote ? CHAR_W : 0);
+    // the current point is drawn with a wider ring, so its label stands further off
+    const g = p.current ? GAP + 4 : GAP;
     const tries: { anchor: "start" | "end"; dx: number; dy: number }[] = [
-      { anchor: "start", dx: GAP, dy: 0 }, { anchor: "end", dx: -GAP, dy: 0 },
-      { anchor: "start", dx: GAP, dy: LABEL_H }, { anchor: "end", dx: -GAP, dy: LABEL_H },
-      { anchor: "start", dx: GAP, dy: -LABEL_H }, { anchor: "end", dx: -GAP, dy: -LABEL_H },
+      { anchor: "start", dx: g, dy: 0 }, { anchor: "end", dx: -g, dy: 0 },
+      { anchor: "start", dx: g, dy: LABEL_H }, { anchor: "end", dx: -g, dy: LABEL_H },
+      { anchor: "start", dx: g, dy: -LABEL_H }, { anchor: "end", dx: -g, dy: -LABEL_H },
     ];
     let pick = tries[0], box: Box | null = null;
     for (const t of tries) {
@@ -72,11 +75,15 @@ function placeLabels(pts: Omit<ChartPoint, "anchor" | "lx" | "ly">[]): ChartPoin
 
 export function chartModel(ladder: Ladder, currentId: RungId | null): ChartModel {
   const plotted = ladder.rungs.filter((r): r is LadderRung & { imagined: number } => r.placed && r.imagined !== null);
+  // Two seeds that land within a few units of each other share one label, or the two collide on the point.
+  const r4 = plotted.find((r) => r.id === "R4"), r4b = plotted.find((r) => r.id === "R4b");
+  const seedsTogether = !!r4 && !!r4b && Math.abs(toY(r4.imagined) - toY(r4b.imagined)) < LABEL_H;
+  const labelOf = (id: RungId) => (seedsTogether && id === "R4" ? POINT_LABEL_BOTH_SEEDS : seedsTogether && id === "R4b" ? "" : POINT_LABEL[id]);
   const points = placeLabels(plotted.map((r) => ({
     id: r.id,
     px: toX(r.shown),
     py: toY(r.imagined),
-    label: POINT_LABEL[r.id],
+    label: labelOf(r.id),
     reconstruction: r.mode === "reconstruction",
     current: r.id === currentId,
     footnote: SCAN_READING.includes(r.id),
@@ -110,7 +117,7 @@ export function chartSvg(m: ChartModel): string {
       <circle class="lc-hit" cx="${f(p.px)}" cy="${f(p.py)}" r="11"/>
       ${p.current ? `<circle class="lc-ring" cx="${f(p.px)}" cy="${f(p.py)}" r="7.5"/>` : ""}
       <circle class="lc-dot" cx="${f(p.px)}" cy="${f(p.py)}" r="${p.reconstruction ? 3.6 : 4}"/>
-      <text class="lc-label" x="${f(p.lx)}" y="${f(p.ly + 3.5)}" text-anchor="${p.anchor}">${esc(p.label)}${p.footnote ? "*" : ""}</text>
+      ${p.label ? `<text class="lc-label" x="${f(p.lx)}" y="${f(p.ly + 3.5)}" text-anchor="${p.anchor}">${esc(p.label)}${p.footnote ? "*" : ""}</text>` : ""}
     </g>`).join("");
   return `<svg class="ladder-chart" viewBox="0 0 ${B.width} ${B.height}" role="group" aria-label="${esc(LADDER.chartTitle)}">
     <g aria-hidden="true">${grid}
