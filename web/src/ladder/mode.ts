@@ -56,6 +56,10 @@ export class LadderMode {
     // After the map's tab: the ladder is another way of looking, like the map.
     o.chrome.mapButton.after(this.chip);
     this.panel.setRedPen(this.redPen);
+    // The touch controls' tilt switch keeps the foot of the sheet; it rides above the panel, whatever its height.
+    new ResizeObserver(() => {
+      document.documentElement.style.setProperty("--ladder-h", `${this.panel.root.hidden ? 0 : this.panel.root.offsetHeight}px`);
+    }).observe(this.panel.root);
   }
 
   get active() {

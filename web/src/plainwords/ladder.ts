@@ -17,7 +17,7 @@ export const LADDER_NOTES = {
   /** Beside the red pen switch. */
   redPen: [
     "Turn on \"Red pen\" and the made-up parts that ended up in the wrong place turn red, like a teacher marking homework.",
-    "The black ink parts are made up too. But they landed where my real room is.",
+    "The black ink parts are made up too. Where the page could check them, they landed where my real room is.",
   ],
   /** Above the chart. */
   chart: [

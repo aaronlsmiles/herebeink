@@ -39,6 +39,14 @@ URL parameters:
 | `gscale=<0.25..1>` | data-pass scale (default one data pixel per CSS pixel) |
 | `pose=x,y,z,yaw,pitch` | start somewhere else (metres, degrees; yaw 0 looks along -z) |
 | `debug=shade\|depth\|normal\|flag\|edges` | diagnostic views |
+| `ladder=<rung>` | opens Part 2's ladder mode on a rung (`R1`, `R2`, `R4`, `R4b`, `R8`, `R4r`, `P`); `ladder=1` on its first step. The walk's splat files are not fetched |
+| `redpen=1` | with `ladder=`: the imagined splats that landed wrong drawn in red ink |
+
+### Ladder mode (Part 2)
+
+Opt-in: the "Ladder" tab in the top bar, or `?ladder=`. It reads `ladder.json` (contract: `pipeline/schema/ladder.schema.json`; reader: `src/ladder/contract.ts`) from `VITE_LADDER_URL`, or else `ladder/ladder.json` beside the scene (so `…/v3/scene.json` gives `…/v3/ladder/ladder.json`); with the default fixture scene it reads the synthetic fixture in `public/fixture-ladder/` (`pipeline/make_ladder_fixture.py`). A page whose ladder file is missing or fails the contract simply has no Ladder tab. Not on the hallway link (`coast=off`) or in film mode.
+
+One rung is in memory at a time: stepping disposes the last rung's meshes before the next rung's files are fetched, and a phone loads a rung's `splatsPhone` when it has them. Seen splats draw as photograph, imagined and wrong ones in ink; the red pen sets a per-mesh flag that the shade pass turns into a red wash on the wrong file's paper and the flag pass carries (green channel) to the present pass, which draws that mesh's strokes in red. Under the publication stance the page shows coverage numbers only (shown, imagined, the scan's own check); right and wrong are colour. Module map: sub-plan E in the hub (`prototypes/plans/p50-here-be-ink/plans/sub-plan-e-ladder-mode.md`).
 
 The old smoke page is `smoke.html`; the spike is `spike.html`.
 
@@ -48,7 +56,7 @@ node tools/viewer-measure.mjs all   # real GPU: screenshots and numbers into ../
 
 ## Test hooks
 
-`document.documentElement.dataset.ready` becomes `"1"` once every file is in and every pass has drawn three frames; `dataset.firstSplats` holds the time of the first frame with splats. In dev builds `window.__hbi` holds `{ viewer, chrome, inkSwitch, params, setPose, setParts, frame, readFlag, hud }` (the smoke page keeps its own `{ renderer, scene, camera, spark, mesh }`).
+`document.documentElement.dataset.ready` becomes `"1"` once every file is in and every pass has drawn three frames (in ladder mode, `dataset.ladderRung` names the rung shown and `dataset.ladderReady` names it once its files are all in); `dataset.firstSplats` holds the time of the first frame with splats. In dev builds `window.__hbi` holds `{ viewer, chrome, inkSwitch, params, ladder, setPose, setParts, frame, readFlag, hud }` (the smoke page keeps its own `{ renderer, scene, camera, spark, mesh }`).
 
 ## Spike S1 (outlines from a second Spark pass)
 

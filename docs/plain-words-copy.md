@@ -152,3 +152,39 @@ Each note sits just before or beside the control it explains.
 **The credit** (`p.credit`, on the first screen):
 
 > World Labs made Marble, the AI program that built the made-up part. The ink is drawn by this page's own code, not by hand.
+
+## Ladder mode (Part 2, added 23 Nov 2026)
+
+Additive: these notes sit beside the ladder's own parts and change none of the walk's words above. The same checks run on them (`web/src/plainwords/ladder.test.ts`), plus one: no share of right or wrong, ever, since under the publication stance right and wrong are only colour on the page. They give no figures at all until THESIS.md has Part 2's numbers to source them from.
+
+**Where:** the ladder's panel (`section.ladder`), under its heading "What Marble saw", before the steps.
+
+> This is a second test, in the same room. I asked Marble to build my room again and again.
+>
+> Each time, I gave it more photos of the room, all taken from the same spot. The steps go from a single photo up to the whole round view.
+>
+> Where you see a photo, Marble was shown that part and kept it in the right place. Where you see a drawing, Marble made it up.
+
+**Where:** under the step's readout, while a step with photo frames is shown.
+
+> The thin pen lines that fan out from the middle show where each photo was pointing. Marble never saw anything outside them.
+
+**Where:** the ladder's panel, after its key, near the "Red pen" switch.
+
+> Turn on "Red pen" and the made-up parts that ended up in the wrong place turn red, like a teacher marking homework.
+>
+> The black ink parts are made up too. Where the page could check them, they landed where my real room is.
+
+**Where:** the fold "Shown against imagined", above the chart.
+
+> The little chart puts each world on its own dot. Further right, Marble was shown more of the room. Higher up, more of its world was made up.
+>
+> The dashed line is as low as a dot could go. It marks the part of the room the photos never showed.
+
+**Where:** under the readout, only on a step whose world was not placed.
+
+> Sometimes the world Marble built would not line up with my room. Then the page can't tell which parts it saw, so it leaves that world out.
+
+**Where:** the top bar's fold of notes, under the "Ladder" switch's live label.
+
+> This switches to the second test: the same room, built again from more photos each time. Tap it again to go back to walking.

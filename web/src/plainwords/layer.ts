@@ -204,7 +204,8 @@ export function mountPlainWords(o: PlainOptions): PlainWords | null {
 
   let looking: number | null = null;
   const look = () => {
-    if (viewer.mapOn || viewer.xrActive) return;
+    // The walk's chapters follow Part 1's pen line, which the ladder does not draw.
+    if (viewer.mapOn || viewer.xrActive || html.dataset.ladder === "on") return;
     const pose = viewer.walk.pose();
     const cam = viewer.camera;
     const halfH = Math.atan(cam.aspect * Math.tan((cam.fov * Math.PI) / 360));

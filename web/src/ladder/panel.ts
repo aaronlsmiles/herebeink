@@ -146,17 +146,18 @@ export class LadderPanel {
       if (near) this.steps.get(near)?.setAttribute("aria-pressed", "mixed");
     }
     const head = el("h3", {}, rung.label);
-    if (rung.mode === "reconstruction" && !rung.label.includes(LADDER.reconstruction)) head.append(" ", el("span", { className: "tag", title: LADDER.reconstructionText }, LADDER.reconstruction));
+    const tags = el("p", { className: "tags" });
+    if (rung.mode === "reconstruction" && !rung.label.includes(LADDER.reconstruction)) tags.append(el("span", { className: "tag", title: LADDER.reconstructionText }, LADDER.reconstruction));
+    if (!rung.placed) tags.append(el("span", { className: "tag" }, LADDER.notPlaced));
     if (!rung.placed) {
-      head.append(" ", el("span", { className: "tag" }, LADDER.notPlaced));
-      this.now.replaceChildren(head, el("p", { className: "ladder-text" }, LADDER.notPlacedText));
+      this.now.replaceChildren(head, tags, el("p", { className: "ladder-text" }, LADDER.notPlacedText));
     } else {
       const dl = el("dl", { className: "ladder-readout" },
         el("div", {}, el("dt", {}, READOUT.shown), el("dd", {}, READOUT.shownText(rung))),
         el("div", {}, el("dt", {}, READOUT.imagined), el("dd", {}, READOUT.imaginedText(rung))),
         el("div", {}, el("dt", {}, READOUT.check), el("dd", {}, READOUT.checkText(rung))),
       );
-      this.now.replaceChildren(head, dl);
+      this.now.replaceChildren(head, ...(tags.childElementCount ? [tags] : []), dl);
     }
     this.notPlacedNote.hidden = rung.placed;
     this.framesNote.hidden = rung.frustums.length === 0;

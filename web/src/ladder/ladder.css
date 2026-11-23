@@ -38,8 +38,8 @@
 .ladder-step .tick { display: block; height: 7px; box-sizing: border-box; border: 1.5px solid var(--ink); border-left-width: 0; }
 .ladder-step:first-child .tick { border-left-width: 1.5px; }
 .ladder-step[data-alt="0"] .tick { background: var(--ink); }
-.ladder-step .name { padding: 2px 8px 0; text-align: left; }
-.ladder-step[aria-pressed="true"] .name { background: var(--ink); color: var(--paper); padding-block: 4px; }
+.ladder-step .name { padding: 3px 8px; text-align: left; }
+.ladder-step[aria-pressed="true"] .name { background: var(--ink); color: var(--paper); }
 .ladder-step[aria-pressed="mixed"] .name { box-shadow: inset 0 -2px 0 var(--ink); }
 @media (hover: hover) and (pointer: fine) {
   .ladder-step:not([aria-pressed="true"]):hover .name { background: var(--step); }
@@ -50,8 +50,9 @@
 .ladder-status:empty { display: none; }
 
 .ladder-now h3 { margin: 0 0 6px; font-size: 1.0625rem; font-weight: 650; letter-spacing: -0.01em; }
+.ladder-now .tags { display: flex; flex-wrap: wrap; gap: 4px; margin: -2px 0 8px; }
 .ladder-now .tag {
-  display: inline-block; margin-left: 4px; padding: 0 6px; vertical-align: 2px;
+  display: inline-block; padding: 1px 6px;
   background: var(--step); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.01em;
 }
 .ladder-readout { display: grid; grid-template-columns: max-content 1fr; gap: 3px 12px; margin: 0 0 10px; }
@@ -100,9 +101,9 @@
 @media (hover: hover) and (pointer: fine) {
   .ladder-chart .lc-point:hover .lc-hit { fill: var(--step); }
 }
-.ladder-figure figcaption { margin-top: 6px; color: var(--soft); font-size: 0.8125rem; line-height: 1.4; }
+.ladder-figure figcaption { margin-top: 8px; color: var(--soft); font-size: 0.75rem; line-height: 1.4; max-width: 60ch; text-wrap: pretty; }
 .ladder-figure figcaption p { margin: 0; }
-.ladder-figure figcaption p + p { margin-top: 4px; }
+.ladder-figure figcaption p + p { margin-top: 3px; }
 
 /* The ladder's key, in the panel and on the map: Part 1's key's grid, the ladder's own classes. */
 .ladder-key { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; }
@@ -145,3 +146,12 @@
 .ladder-key.compact .swatch { width: 16px; height: 11px; }
 .ladder-key.compact .swatch.line { height: 3px; }
 .map:not([hidden]) ~ .ladder .ladder-key.compact { display: none; }
+@media (max-width: 719px) {
+  html[data-ladder="on"] .map[hidden] ~ .touch-ui .gyro-button { bottom: calc(max(var(--gutter), env(safe-area-inset-bottom)) + var(--ladder-h, 0px) + 8px); }
+}
+
+/* The walk's plain-words chapters tell the walk's story, which the ladder does not draw; the panel carries the
+   ladder's own notes instead, and the walk's band comes back with the walk. */
+html[data-ladder="on"] .pw-band { display: none; }
+/* The numbers panel keeps clear of the ladder's corner. */
+html[data-ladder="on"] .hud { top: auto; left: auto; right: max(var(--gutter), env(safe-area-inset-right)); bottom: max(var(--gutter), env(safe-area-inset-bottom)); }
