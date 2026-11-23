@@ -153,6 +153,11 @@ The first real material: one sitting in a narrow room with a high ceiling and ba
 - **Shipped:** media v3 on the media host (v1 and v2 untouched), the page pointed at it and deployed; the live checks pass and the console is clean. The plain words now say "about four in every hundred" (3.8 %), and THESIS carries both splits. The film keeps the v2 look and was not re-cut.
 - **Left:** a faint grey smudge at the foot of the left jamb, on the frame's side of the seal.
 
+## 23 Nov — Part 2, R2: two photos
+
+- **Generated:** R2, the photo facing the door and the one facing away, in one request. 1,600 credits; balance 8,220.
+- **Not placed.** Every check passes but colour. The fit lands where R4's and R8's did (front 2° from the door, 5.6° off level, residual 3.5 cm) and the contact sheet looks placed, but two photos of two near-plain end walls barely tell that pose from one turned 90° (0.675 against 0.654). The turned pose wins its 0.654 only before fitting; fitted, it falls to 0.467 and fits the room far worse. The rule written before any ladder world lets a look by eye overrule colour only when the runner-up is the chosen pose's mirror, and this one is not, so R2 is recorded as not placed and the page shows it as such. The same question a person would ask (does the runner-up still win once fitted?) is a change to Gate A for Aaron to rule on, not one to make after seeing the result.
+
 ## 23 Nov — Part 2, R8: eight photos
 
 - **Generated:** R8, all eight 66° photos at 45° steps, in reconstruction mode (the mode where Marble lays the photos out itself and may ignore the azimuths). 1,600 credits; balance 11,420.
